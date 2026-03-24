@@ -1,7 +1,7 @@
 import { calculateDemolition } from '../modules/demolition/calculator.js';
 import { getActiveCertifications } from '../config/certifications.js';
 
-export const generateEstimateHTML = (analysis, sector) => {
+export const generateEstimateHTML = (analysis, sector, options = {}) => {
   const company = sector === 'painting' ? COMPANY_INFO.painting : 
                   sector === 'cleaning' ? COMPANY_INFO.cleaning : 
                   COMPANY_INFO.demolition;
@@ -10,11 +10,7 @@ export const generateEstimateHTML = (analysis, sector) => {
   let totalValue = 0;
 
   if (sector === 'cleaning') {
-    const result = calculateCleaning(analysis.sqft?.replace(/,/g, ''), {
-      includeRough: true, // Default to most complete
-      includeFinal: true,
-      includeTouchup: true
-    });
+    const result = calculateCleaning(analysis.sqft?.replace(/,/g, ''), options);
     lineItems = result.items.map(item => `
       <tr>
         <td>${item.name}<br/><small>${item.description}</small></td>

@@ -23,9 +23,32 @@ document.querySelector('#app').innerHTML = `
     </header>
     
     <main class="main-content">
-      <section id="upload-section" class="hero">
-        <h1>Read your Construction Bids</h1>
-        <p>Upload a PlanHub, BuildingConnect, or GC project file to generate a competitive estimate.</p>
+      <section id="selection-screen" class="view-section">
+        <h1 class="hero-title">Select Business Sector</h1>
+        <p class="hero-subtitle">Choose the area you want to generate an estimate for today.</p>
+        
+        <div class="selection-grid">
+          <div class="selection-card" data-sector="painting">
+            <div class="card-icon">🎨</div>
+            <h3>Painting</h3>
+            <p>Interior, Exterior & Trim estimates.</p>
+          </div>
+          <div class="selection-card" data-sector="cleaning">
+            <div class="card-icon">🧹</div>
+            <h3>Cleaning</h3>
+            <p>Post-construction janitorial services.</p>
+          </div>
+          <div class="selection-card" data-sector="demolition">
+            <div class="card-icon">🔨</div>
+            <h3>Demolition</h3>
+            <p>Structural & debris removal estimates.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="upload-section" class="hero" style="display: none;">
+        <h1 id="upload-title">Read your Construction Bids</h1>
+        <p>Upload a PlanHub, BuildingConnect, or GC project file.</p>
       </section>
 
       <section id="results-section" class="results-container" style="display: none;">
@@ -36,10 +59,39 @@ document.querySelector('#app').innerHTML = `
             <label>Select Sector for Estimate:</label>
             <select id="selected-sector">
               <option value="painting">Painting</option>
-              <option value="cleaning">Cleaning</option>
+              <option value="cleaning" selected>Cleaning</option>
               <option value="demolition">Demolition</option>
             </select>
           </div>
+
+          <!-- Detailed Cleaning Form (Hidden by default) -->
+          <div id="cleaning-details-form" class="details-form">
+            <h3>Cleaning Details</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Window Count</label>
+                <input type="number" id="window-count" value="0" min="0" />
+              </div>
+              <div class="form-group">
+                <label>Carpet Area (SF)</label>
+                <input type="number" id="carpet-sqft" value="0" min="0" />
+              </div>
+              <div class="form-group">
+                <label>Tile Area (SF)</label>
+                <input type="number" id="tile-sqft" value="0" min="0" />
+              </div>
+              <div class="form-group">
+                <label>Hardwood Area (SF)</label>
+                <input type="number" id="hardwood-sqft" value="0" min="0" />
+              </div>
+            </div>
+            <div class="form-checkboxes">
+              <label><input type="checkbox" id="include-rough" checked /> Include Rough Clean</label>
+              <label><input type="checkbox" id="include-final" checked /> Include Final Clean</label>
+              <label><input type="checkbox" id="include-touchup" checked /> Include Touch-up</label>
+            </div>
+          </div>
+
           <button id="generate-estimate-btn" class="btn-accent">Generate Professional Estimate</button>
         </div>
       </section>
@@ -128,13 +180,47 @@ document.getElementById('pdf-upload').addEventListener('change', async (event) =
 
       resultsSection.style.display = 'none';
       estimateDisplay.style.display = 'block';
-      estimateContent.innerHTML = generateEstimateHTML(analysis, sector);
+
+      const options = {};
+      if (sector === 'cleaning') {
+        options.windowCount = parseInt(document.getElementById('window-count').value) || 0;
+        options.includeRough = document.getElementById('include-rough').checked;
+        options.includeFinal = document.getElementById('include-final').checked;
+        options.includeTouchup = document.getElementById('include-touchup').checked;
+        options.floors = {
+          carpet: parseFloat(document.getElementById('carpet-sqft').value) || 0,
+          tile: parseFloat(document.getElementById('tile-sqft').value) || 0,
+          hardwood: parseFloat(document.getElementById('hardwood-sqft').value) || 0
+        };
+      }
+
+    const sectorSelect = document.getElementById('selected-sector');
+    sectorSelect.value = window.currentSector;
+    
+    // Set initial visibility
+    const cleaningForm = document.getElementById('cleaning-details-form');
+    cleaningForm.style.display = sectorSelect.value === 'cleaning' ? 'block' : 'none';
+
+    estimateContent.innerHTML = generateEstimateHTML(analysis, sector, options);
     };
 
   } catch (error) {
     console.error('Error processing PDF:', error);
+    const uploadSection = document.getElementById('upload-section');
     uploadSection.innerHTML = `<h1>Error reading PDF</h1><p>Please try another file.</p>`;
   }
+});
+
+// Selection Logic
+document.querySelectorAll('.selection-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const sector = card.getAttribute('data-sector');
+    window.currentSector = sector;
+    
+    document.getElementById('selection-screen').style.display = 'none';
+    document.getElementById('upload-section').style.display = 'block';
+    document.getElementById('upload-title').innerText = `New ${sector.charAt(0).toUpperCase() + sector.slice(1)} Estimate`;
+  });
 });
 
 // Navigation Logic
@@ -144,6 +230,7 @@ document.querySelectorAll('.nav-link').forEach(link => {
     const view = link.getAttribute('data-view');
     
     // Hide all sections
+    document.getElementById('selection-screen').style.display = 'none';
     document.getElementById('upload-section').style.display = 'none';
     document.getElementById('results-section').style.display = 'none';
     document.getElementById('estimate-display').style.display = 'none';
@@ -153,7 +240,7 @@ document.querySelectorAll('.nav-link').forEach(link => {
     link.classList.add('active');
 
     if (view === 'dashboard') {
-      document.getElementById('upload-section').style.display = 'block';
+      document.getElementById('selection-screen').style.display = 'block';
     } else if (view === 'certifications') {
       document.getElementById('certifications-section').style.display = 'block';
       renderCertsEditor();
