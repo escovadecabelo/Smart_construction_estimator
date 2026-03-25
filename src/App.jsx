@@ -23,8 +23,8 @@ function App() {
     const [analysisStep, setAnalysisStep] = useState(0); // 0: Upload, 1: Inspection, 2: Proposal
     const [scopeDropdownOpen, setScopeDropdownOpen] = useState(false);
     const [engineDropdownOpen, setEngineDropdownOpen] = useState(false);
-    const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
-    const [showKeyModal, setShowKeyModal] = useState(!apiKey);
+    const [apiKey, setApiKey] = useState(import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key') || '');
+    const [showKeyModal, setShowKeyModal] = useState(false); // Default to false, will show only if key is missing
 
     const [editableVars, setEditableVars] = useState([]);
     const [projectedTotal, setProjectedTotal] = useState(0);
@@ -67,7 +67,7 @@ function App() {
 
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Use flash for speed/reliability with PDFs
+            const model = genAI.getGenerativeModel({ model: currentEngine.model || "gemini-1.5-flash" }); 
 
             const prompt = `Act as an expert construction estimator. Analyze this PDF blueprint for ${currentScope.label} specifics. 
       Identify essential project variables like total area, wall lengths, restroom counts, or material needs.
