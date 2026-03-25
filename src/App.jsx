@@ -23,6 +23,7 @@ function App() {
     const [analysisStep, setAnalysisStep] = useState(0); // 0: Upload, 1: Inspection, 2: Proposal
     const [scopeDropdownOpen, setScopeDropdownOpen] = useState(false);
     const [engineDropdownOpen, setEngineDropdownOpen] = useState(false);
+    const [showWebAIScan, setShowWebAIScan] = useState(false);
 
     // Strict Environment Variable Loading
     const [apiKeys] = useState(() => {
@@ -142,6 +143,18 @@ function App() {
 
     const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text);
+        alert("Prompt copied to clipboard! You can now paste it into Gemini or ChatGPT.");
+    };
+
+    const getExternalPrompt = () => {
+        return `Act as an expert construction estimator. Analyze my PDF blueprint for ${currentScope.label} specifics. 
+Identify essential project variables like total area, wall lengths, restroom counts, or material needs.
+Return ONLY a JSON array with these 4 fields: label, qty, unit, unitCost.
+Limit to top 4 variables. Format example: [{ "id": 1, "label": "Gyp Walls", "qty": 450, "unit": "ft", "unitCost": 12.00 }]`;
+    };
+
     return (
         <div className="app-container">
             <nav className="top-nav">
@@ -197,24 +210,76 @@ function App() {
                             <h1>{currentScope.label} Extraction</h1>
                             <p>Upload blueprints for real {currentEngine.id === 'gemini' ? 'neural' : 'advanced'} analysis and bid modeling.</p>
                         </header>
-                        <div className="upload-section">
-                            <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} accept=".pdf" />
-                            <div className={`dropzone ${analyzing ? 'analyzing' : ''}`} onClick={handleZoneClick}>
-                                {analyzing ? (
-                                    <div className="status">
-                                        <div className="spinner-container"><div className="spinner"></div><div className="spinner-pulse"></div></div>
-                                        <p className="analyzing-text">AI Reading PDF in Real-time...</p>
-                                        <span className="analyzing-sub">Identifying {currentScope.label} schedules and quantities</span>
-                                    </div>
-                                ) : (
-                                    <div className="prompt">
-                                        <div className="icon">📄</div>
-                                        <h3>Upload Blueprint PDF</h3>
-                                        <p>Select the document for {currentEngine.label} intelligence</p>
-                                    </div>
-                                )}
+
+                        <div className="discovery-grid">
+                            <div className="upload-section main-path">
+                                <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} accept=".pdf" />
+                                <div className={`dropzone ${analyzing ? 'analyzing' : ''}`} onClick={handleZoneClick}>
+                                    {analyzing ? (
+                                        <div className="status">
+                                            <div className="spinner-container"><div className="spinner"></div><div className="spinner-pulse"></div></div>
+                                            <p className="analyzing-text">AI Reading PDF in Real-time...</p>
+                                            <span className="analyzing-sub">Identifying {currentScope.label} schedules and quantities</span>
+                                        </div>
+                                    ) : (
+                                        <div className="prompt">
+                                            <div className="icon">📄</div>
+                                            <h3>Standard AI Scan</h3>
+                                            <p>Directly analyze with {currentEngine.label}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="web-ai-section side-path">
+                                <div className="web-ai-card" onClick={() => setShowWebAIScan(true)}>
+                                    <div className="card-badge">EXPERIMENTAL</div>
+                                    <div className="icon">🌐</div>
+                                    <h3>Manual Web AI Scan</h3>
+                                    <p>Use ChatGPT or Gemini Web with our custom prompt</p>
+                                    <button className="ghost-btn">Open Facilitator →</button>
+                                </div>
                             </div>
                         </div>
+
+                        {showWebAIScan && (
+                            <div className="modal-overlay" onClick={() => setShowWebAIScan(false)}>
+                                <div className="key-modal" onClick={e => e.stopPropagation()}>
+                                    <div className="modal-header">
+                                        <h2>Manual Web AI Helper</h2>
+                                        <button className="close-x" onClick={() => setShowWebAIScan(false)}>×</button>
+                                    </div>
+                                    <p>Deep PDF analysis can sometimes be better in the official web apps. Follow these steps:</p>
+
+                                    <div className="helper-steps">
+                                        <div className="h-step">
+                                            <span className="step-num">1</span>
+                                            <div className="step-content">
+                                                <strong>Copy our Expert Prompt</strong>
+                                                <button className="copy-btn" onClick={() => copyToClipboard(getExternalPrompt())}>📋 Copy Professional Prompt</button>
+                                            </div>
+                                        </div>
+                                        <div className="h-step">
+                                            <span className="step-num">2</span>
+                                            <div className="step-content">
+                                                <strong>Open your preferred AI</strong>
+                                                <div className="link-group">
+                                                    <a href="https://gemini.google.com" target="_blank" rel="noreferrer" className="ai-link gemini">Open Gemini</a>
+                                                    <a href="https://chatgpt.com" target="_blank" rel="noreferrer" className="ai-link chatgpt">Open ChatGPT</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="h-step">
+                                            <span className="step-num">3</span>
+                                            <div className="step-content">
+                                                <strong>Upload PDF & Paste</strong>
+                                                <p className="sub-hint">Drop your PDF into their window and paste the prompt!</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -406,7 +471,30 @@ function App() {
         .animate-fade-in { animation: fadeIn 0.6s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+        .discovery-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px; margin-top: 40px; }
+        .web-ai-card { background: white; border: 2px solid #e2e8f0; border-radius: 40px; padding: 40px; text-align: center; cursor: pointer; transition: 0.3s; position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .web-ai-card:hover { border-color: #10b981; transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.05); }
+        .web-ai-card .icon { font-size: 3rem; margin-bottom: 20px; }
+        .web-ai-card .card-badge { position: absolute; top: 20px; right: 20px; background: #ecfdf5; color: #10b981; padding: 4px 10px; border-radius: 50px; font-size: 0.6rem; font-weight: 800; }
+        
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; }
+        .close-x { background: none; border: none; font-size: 2rem; cursor: pointer; color: #94a3b8; }
+        .helper-steps { text-align: left; margin-top: 30px; display: flex; flex-direction: column; gap: 24px; }
+        .h-step { display: flex; gap: 20px; align-items: flex-start; }
+        .step-num { width: 32px; height: 32px; background: var(--accent); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; }
+        .step-content { flex: 1; }
+        .step-content strong { display: block; margin-bottom: 8px; font-size: 1.1rem; }
+        .copy-btn { width: 100%; padding: 14px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .copy-btn:hover { background: #eff6ff; border-color: var(--accent); color: var(--accent); }
+        .link-group { display: flex; gap: 12px; margin-top: 10px; }
+        .ai-link { flex: 1; padding: 12px; text-decoration: none; border-radius: 10px; text-align: center; font-weight: 700; font-size: 0.9rem; transition: 0.2s; }
+        .ai-link.gemini { background: #4285f4; color: white; }
+        .ai-link.chatgpt { background: #10a37f; color: white; }
+        .ai-link:hover { opacity: 0.9; transform: scale(1.02); }
+        .sub-hint { font-size: 0.85rem; color: #64748b; font-style: italic; margin-top: 8px; }
+
         @media (max-width: 768px) {
+            .discovery-grid { grid-template-columns: 1fr; }
             .step-header-v4 { flex-direction: column; align-items: flex-start; gap: 20px; }
             .recalculation-status { width: 100%; text-align: left; }
             .top-nav { flex-direction: column; height: auto; padding: 20px; gap: 20px; }
