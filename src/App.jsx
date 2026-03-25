@@ -23,12 +23,14 @@ function App() {
     const [analysisStep, setAnalysisStep] = useState(0); // 0: Upload, 1: Inspection, 2: Proposal
     const [scopeDropdownOpen, setScopeDropdownOpen] = useState(false);
     const [engineDropdownOpen, setEngineDropdownOpen] = useState(false);
-    const [apiKey] = useState(() => {
-        const envKey = import.meta.env.VITE_GEMINI_API_KEY;
-        const localKey = localStorage.getItem('gemini_api_key');
-        console.log(`[AI Sync] Env Key Detect: ${envKey ? 'YES' : 'NO'}`);
-        console.log(`[AI Sync] Local Key Detect: ${localKey ? 'YES' : 'NO'}`);
-        return envKey || localKey || '';
+    const [apiKeys] = useState(() => {
+        const keys = {
+            google: import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key') || '',
+            anthropic: import.meta.env.VITE_ANTHROPIC_API_KEY || '',
+            openai: import.meta.env.VITE_OPENAI_API_KEY || ''
+        };
+        console.log(`[AI Sync] Keys Detected - Google: ${keys.google ? 'YES' : 'NO'}, Claude: ${keys.anthropic ? 'YES' : 'NO'}, GPT: ${keys.openai ? 'YES' : 'NO'}`);
+        return keys;
     });
     const [showKeyModal, setShowKeyModal] = useState(false);
 
@@ -45,9 +47,12 @@ function App() {
     }, [editableVars]);
 
     const handleZoneClick = () => {
-        if (!apiKey) {
-            console.error("[AI Sync] Cannot upload: No API Key found in .env or localStorage.");
-            setShowKeyModal(true);
+        const provider = currentEngine.provider.toLowerCase();
+        const key = provider === 'google' ? apiKeys.google : (provider === 'anthropic' ? apiKeys.anthropic : apiKeys.openai);
+
+        if (!key) {
+            console.error(`[AI Sync] Cannot upload: No API Key found for ${currentEngine.provider} in .env`);
+            alert(`API Key for ${currentEngine.provider} is missing! Please check your .env file.`);
             return;
         }
         fileInputRef.current.click();
@@ -75,56 +80,42 @@ function App() {
     };
 
     const processRealAIAnalysis = async (file) => {
-        const targetModel = currentEngine.model || "gemini-1.5-flash";
-        console.log(`[AI Sync] Starting Analysis...`);
-        console.log(`[AI Sync] Target Model: ${targetModel}`);
-        console.log(`[AI Sync] API Key Prefix: ${apiKey ? apiKey.substring(0, 7) + "..." : "MISSING"}`);
+        const provider = currentEngine.provider.toLowerCase();
+        const targetModel = currentEngine.model;
+        const key = provider === 'google' ? apiKeys.google : (provider === 'anthropic' ? apiKeys.anthropic : apiKeys.openai);
 
-        if (!apiKey) {
-            console.error("[AI Sync] ERROR: VITE_GEMINI_API_KEY is not defined in .env");
-            alert("API Key missing! Please check your .env file for VITE_GEMINI_API_KEY.");
-            return;
-        }
+        console.log(`[AI Sync] Starting Analysis with ${currentEngine.label}...`);
 
         setAnalyzing(true);
 
         try {
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: targetModel });
+            let resultVars = [];
+            const prompt = `Act as an expert construction estimator. Analyze this blueprint/document for ${currentScope.label} specifics. 
+            Identify essential project variables like total area, wall lengths, restroom counts, or material needs.
+            Return ONLY a JSON array: [{ "id": 1, "label": "Variable Name", "qty": 100, "unit": "sq.ft", "unitCost": 0.50 }]
+            Limit to top 4.`;
 
-            const prompt = `Act as an expert construction estimator. Analyze this PDF blueprint for ${currentScope.label} specifics. 
-      Identify essential project variables like total area, wall lengths, restroom counts, or material needs.
-      
-      Return ONLY a JSON array of variables with this structure:
-      [
-        { "id": 1, "label": "Variable Name", "qty": 100, "unit": "sq.ft", "unitCost": 0.50 },
-        ...
-      ]
-      Limit to the top 4 most critical variables for a bidding proposal. 
-      Estimate realistic market unit costs if not specified. Sum should be realistic for the detected scope.`;
+            if (provider === 'google') {
+                const genAI = new GoogleGenerativeAI(key);
+                const model = genAI.getGenerativeModel({ model: targetModel || "gemini-1.5-flash" });
+                const part = await fileToGenerativePart(file);
+                const result = await model.generateContent([prompt, part]);
+                const response = await result.response;
+                const text = response.text();
+                const jsonStr = text.match(/\[.*\]/s)?.[0] || text;
+                resultVars = JSON.parse(jsonStr);
+            } else {
+                // Fallback for providers where direct browser access is experimental or needs proxy
+                console.warn(`[AI Sync] ${currentEngine.label} integration via direct fetch is experimental. Check CORS.`);
+                // For now, if not Google, we trigger a specific alert to let user know we are working on bridging this
+                throw new Error(`${currentEngine.label} requires a backend proxy for browser-based PDF analysis to avoid CORS. Please use Gemini 2.0 Pro for direct local testing.`);
+            }
 
-            const part = await fileToGenerativePart(file);
-            console.log(`[AI Sync] Sending request to Gemini...`);
-            const result = await model.generateContent([prompt, part]);
-            const response = await result.response;
-            const text = response.text();
-            console.log(`[AI Sync] Response received. Raw text length: ${text.length}`);
-
-            // Basic JSON extraction from markdown if AI wraps it
-            const jsonStr = text.match(/\[.*\]/s)?.[0] || text;
-            const parsedVars = JSON.parse(jsonStr);
-            console.log(`[AI Sync] Parsed Variables:`, parsedVars);
-
-            setEditableVars(parsedVars);
+            setEditableVars(resultVars);
             setAnalysisStep(1);
         } catch (error) {
             console.error("[AI Sync] EXTRACTION ERROR:", error);
-            const errorMsg = error.message || "Unknown error";
-            console.error(`[AI Sync] Detailed Message: ${errorMsg}`);
-
-            alert(`AI Analysis Failed: ${errorMsg}\n\nFalling back to simulation data.`);
-
-            // Fallback
+            alert(`AI Analysis Failed: ${error.message}\n\nFalling back to simulation data.`);
             setEditableVars(getDefaultVariables(currentScope.id));
             setAnalysisStep(1);
         } finally {
