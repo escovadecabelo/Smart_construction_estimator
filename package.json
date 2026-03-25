@@ -6,12 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "serve-pdf": "node server/index.js"
   },
   "devDependencies": {
     "vite": "^5.0.0"
   },
   "dependencies": {
-    "pdfjs-dist": "^4.0.0"
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "pdfjs-dist": "^4.0.0",
+    "puppeteer": "^24.40.0"
   }
 }
