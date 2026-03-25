@@ -23,7 +23,13 @@ function App() {
     const [analysisStep, setAnalysisStep] = useState(0); // 0: Upload, 1: Inspection, 2: Proposal
     const [scopeDropdownOpen, setScopeDropdownOpen] = useState(false);
     const [engineDropdownOpen, setEngineDropdownOpen] = useState(false);
-    const [apiKey] = useState(import.meta.env.VITE_GEMINI_API_KEY || '');
+    const [apiKey] = useState(() => {
+        const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+        const localKey = localStorage.getItem('gemini_api_key');
+        console.log(`[AI Sync] Env Key Detect: ${envKey ? 'YES' : 'NO'}`);
+        console.log(`[AI Sync] Local Key Detect: ${localKey ? 'YES' : 'NO'}`);
+        return envKey || localKey || '';
+    });
     const [showKeyModal, setShowKeyModal] = useState(false);
 
     const [editableVars, setEditableVars] = useState([]);
@@ -39,7 +45,11 @@ function App() {
     }, [editableVars]);
 
     const handleZoneClick = () => {
-        if (!apiKey) { setShowKeyModal(true); return; }
+        if (!apiKey) {
+            console.error("[AI Sync] Cannot upload: No API Key found in .env or localStorage.");
+            setShowKeyModal(true);
+            return;
+        }
         fileInputRef.current.click();
     };
 
