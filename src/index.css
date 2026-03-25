@@ -1,8 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@300;400;600&display=swap');
+
 :root {
   font-family: 'Outfit', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   --primary: #0f172a;
   --accent: #3b82f6;
   --accent-glow: rgba(59, 130, 246, 0.5);
@@ -12,12 +13,9 @@
   --text-main: #1e293b;
   --text-muted: #64748b;
   --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-
   background-color: var(--bg);
   color: var(--text-main);
 }
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@300;400;600&display=swap');
 
 * {
   margin: 0;
@@ -38,11 +36,23 @@ body {
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
