@@ -23,8 +23,8 @@ function App() {
     const [analysisStep, setAnalysisStep] = useState(0); // 0: Upload, 1: Inspection, 2: Proposal
     const [scopeDropdownOpen, setScopeDropdownOpen] = useState(false);
     const [engineDropdownOpen, setEngineDropdownOpen] = useState(false);
-    const [apiKey, setApiKey] = useState(import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key') || '');
-    const [showKeyModal, setShowKeyModal] = useState(false); // Default to false, will show only if key is missing
+    const [apiKey] = useState(import.meta.env.VITE_GEMINI_API_KEY || '');
+    const [showKeyModal, setShowKeyModal] = useState(false);
 
     const [editableVars, setEditableVars] = useState([]);
     const [projectedTotal, setProjectedTotal] = useState(0);
@@ -51,23 +51,36 @@ function App() {
     };
 
     const fileToGenerativePart = async (file) => {
+        console.log(`[AI Sync] Preparing file: ${file.name} (${file.type})`);
         const base64EncodedDataPromise = new Promise((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result.split(',')[1]);
             reader.readAsDataURL(file);
         });
+        const data = await base64EncodedDataPromise;
+        console.log(`[AI Sync] Base64 conversion complete. Data length: ${data.length}`);
         return {
-            inlineData: { data: await base64EncodedDataPromise, mimeType: file.type },
+            inlineData: { data, mimeType: file.type },
         };
     };
 
     const processRealAIAnalysis = async (file) => {
-        if (!apiKey) { alert("Please provide a Gemini API Key first."); return; }
+        const targetModel = currentEngine.model || "gemini-1.5-flash";
+        console.log(`[AI Sync] Starting Analysis...`);
+        console.log(`[AI Sync] Target Model: ${targetModel}`);
+        console.log(`[AI Sync] API Key Prefix: ${apiKey ? apiKey.substring(0, 7) + "..." : "MISSING"}`);
+
+        if (!apiKey) {
+            console.error("[AI Sync] ERROR: VITE_GEMINI_API_KEY is not defined in .env");
+            alert("API Key missing! Please check your .env file for VITE_GEMINI_API_KEY.");
+            return;
+        }
+
         setAnalyzing(true);
 
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: currentEngine.model || "gemini-1.5-flash" }); 
+            const model = genAI.getGenerativeModel({ model: targetModel });
 
             const prompt = `Act as an expert construction estimator. Analyze this PDF blueprint for ${currentScope.label} specifics. 
       Identify essential project variables like total area, wall lengths, restroom counts, or material needs.
@@ -80,20 +93,27 @@ function App() {
       Limit to the top 4 most critical variables for a bidding proposal. 
       Estimate realistic market unit costs if not specified. Sum should be realistic for the detected scope.`;
 
-            const imageParts = [await fileToGenerativePart(file)];
-            const result = await model.generateContent([prompt, ...imageParts]);
+            const part = await fileToGenerativePart(file);
+            console.log(`[AI Sync] Sending request to Gemini...`);
+            const result = await model.generateContent([prompt, part]);
             const response = await result.response;
             const text = response.text();
+            console.log(`[AI Sync] Response received. Raw text length: ${text.length}`);
 
             // Basic JSON extraction from markdown if AI wraps it
             const jsonStr = text.match(/\[.*\]/s)?.[0] || text;
             const parsedVars = JSON.parse(jsonStr);
+            console.log(`[AI Sync] Parsed Variables:`, parsedVars);
 
             setEditableVars(parsedVars);
             setAnalysisStep(1);
         } catch (error) {
-            console.error("AI Extraction Error:", error);
-            alert("AI failed to read the PDF. Using fallback simulation data.");
+            console.error("[AI Sync] EXTRACTION ERROR:", error);
+            const errorMsg = error.message || "Unknown error";
+            console.error(`[AI Sync] Detailed Message: ${errorMsg}`);
+
+            alert(`AI Analysis Failed: ${errorMsg}\n\nFalling back to simulation data.`);
+
             // Fallback
             setEditableVars(getDefaultVariables(currentScope.id));
             setAnalysisStep(1);
