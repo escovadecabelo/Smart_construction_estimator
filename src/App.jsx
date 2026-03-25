@@ -23,16 +23,17 @@ function App() {
     const [analysisStep, setAnalysisStep] = useState(0); // 0: Upload, 1: Inspection, 2: Proposal
     const [scopeDropdownOpen, setScopeDropdownOpen] = useState(false);
     const [engineDropdownOpen, setEngineDropdownOpen] = useState(false);
+
+    // Strict Environment Variable Loading
     const [apiKeys] = useState(() => {
         const keys = {
-            google: import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key') || '',
+            google: import.meta.env.VITE_GEMINI_API_KEY || '',
             anthropic: import.meta.env.VITE_ANTHROPIC_API_KEY || '',
             openai: import.meta.env.VITE_OPENAI_API_KEY || ''
         };
         console.log(`[AI Sync] Keys Detected - Google: ${keys.google ? 'YES' : 'NO'}, Claude: ${keys.anthropic ? 'YES' : 'NO'}, GPT: ${keys.openai ? 'YES' : 'NO'}`);
         return keys;
     });
-    const [showKeyModal, setShowKeyModal] = useState(false);
 
     const [editableVars, setEditableVars] = useState([]);
     const [projectedTotal, setProjectedTotal] = useState(0);
@@ -52,7 +53,7 @@ function App() {
 
         if (!key) {
             console.error(`[AI Sync] Cannot upload: No API Key found for ${currentEngine.provider} in .env`);
-            alert(`API Key for ${currentEngine.provider} is missing! Please check your .env file.`);
+            alert(`API Key for ${currentEngine.provider} is missing from .env! (VITE_${currentEngine.provider.toUpperCase()}_API_KEY)`);
             return;
         }
         fileInputRef.current.click();
@@ -73,7 +74,6 @@ function App() {
             reader.readAsDataURL(file);
         });
         const data = await base64EncodedDataPromise;
-        console.log(`[AI Sync] Base64 conversion complete. Data length: ${data.length}`);
         return {
             inlineData: { data, mimeType: file.type },
         };
@@ -85,7 +85,6 @@ function App() {
         const key = provider === 'google' ? apiKeys.google : (provider === 'anthropic' ? apiKeys.anthropic : apiKeys.openai);
 
         console.log(`[AI Sync] Starting Analysis with ${currentEngine.label}...`);
-
         setAnalyzing(true);
 
         try {
@@ -105,9 +104,6 @@ function App() {
                 const jsonStr = text.match(/\[.*\]/s)?.[0] || text;
                 resultVars = JSON.parse(jsonStr);
             } else {
-                // Fallback for providers where direct browser access is experimental or needs proxy
-                console.warn(`[AI Sync] ${currentEngine.label} integration via direct fetch is experimental. Check CORS.`);
-                // For now, if not Google, we trigger a specific alert to let user know we are working on bridging this
                 throw new Error(`${currentEngine.label} requires a backend proxy for browser-based PDF analysis to avoid CORS. Please use Gemini 2.0 Pro for direct local testing.`);
             }
 
@@ -146,33 +142,8 @@ function App() {
 
     const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 
-    const saveApiKey = (key) => {
-        setApiKey(key);
-        localStorage.setItem('gemini_api_key', key);
-        setShowKeyModal(false);
-    };
-
     return (
         <div className="app-container">
-            {showKeyModal && (
-                <div className="modal-overlay">
-                    <div className="key-modal">
-                        <h2>🛠️ Set Up Your AI Scout</h2>
-                        <p>To perform real PDF analysis, please enter your <strong>Google AI (Gemini) API Key</strong>. It is stored only in your local browser.</p>
-                        <input
-                            type="password"
-                            placeholder="Enter Gemini API Key..."
-                            className="key-input"
-                            onKeyDown={(e) => e.key === 'Enter' && saveApiKey(e.target.value)}
-                        />
-                        <div className="modal-actions">
-                            <button className="primary-btn" onClick={() => saveApiKey(document.querySelector('.key-input').value)}>Save & Connect</button>
-                            <button className="ghost-btn" onClick={() => setShowKeyModal(false)}>Process without AI (Demo Mode)</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <nav className="top-nav">
                 <div className="nav-logo">SMART<span>BID</span> AI</div>
                 <div className="nav-controls">
@@ -215,7 +186,6 @@ function App() {
                             </div>
                         )}
                     </div>
-                    {apiKey && <button className="settings-btn" onClick={() => setShowKeyModal(true)}>⚙️</button>}
                 </div>
             </nav>
 
@@ -402,16 +372,6 @@ function App() {
         .spinner { width: 100%; height: 100%; border: 4px solid #f3f3f3; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* V5: REAL AI OVERLAYS */
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px); z-index: 2000; display: flex; align-items: center; justify-content: center; }
-        .key-modal { background: white; padding: 50px; border-radius: 40px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 50px 100px rgba(0,0,0,0.3); }
-        .key-modal h2 { font-size: 2rem; font-weight: 800; margin-bottom: 12px; }
-        .key-modal p { color: var(--text-muted); margin-bottom: 30px; font-size: 1rem; line-height: 1.6; }
-        .key-input { width: 100%; padding: 18px 24px; border-radius: 16px; border: 2px solid #e2e8f0; font-size: 1rem; margin-bottom: 30px; transition: 0.3s; }
-        .key-input:focus { border-color: var(--accent); outline: none; }
-        .modal-actions { display: flex; flex-direction: column; gap: 12px; }
-        .ghost-btn { background: none; border: none; color: var(--text-muted); font-weight: 600; cursor: pointer; padding: 12px; }
-
         /* INSPECTION HUB STYLES */
         .step-header-v4 { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 50px; }
         .header-meta h2 { font-size: 2.8rem; font-weight: 800; color: var(--primary); letter-spacing: -1px; margin-bottom: 4px; }
@@ -442,9 +402,6 @@ function App() {
 
         .primary-btn { background: var(--primary); color: white; border: none; padding: 18px 40px; border-radius: 18px; font-weight: 700; cursor: pointer; transition: 0.3s; }
         .primary-btn:hover { background: #1e293b; transform: translateY(-2px); }
-
-        .settings-btn { background: none; border: none; cursor: pointer; font-size: 1.2rem; filter: grayscale(1); opacity: 0.5; transition: 0.3s; }
-        .settings-btn:hover { filter: grayscale(0); opacity: 1; }
 
         .animate-fade-in { animation: fadeIn 0.6s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
