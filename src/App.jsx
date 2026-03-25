@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { orcamentoLimpeza } from './limpeza.mjs';
 import { orcamentoDemolicao } from './demolicao.mjs';
 import { orcamentoPintura } from './pintura.mjs';
@@ -10,9 +11,9 @@ const SCOPES = [
 ];
 
 const AI_ENGINES = [
-    { id: 'gemini', label: 'Gemini 2.0 Pro', icon: '♊', provider: 'Google' },
-    { id: 'claude', label: 'Claude 3.5 Sonnet', icon: '🎭', provider: 'Anthropic' },
-    { id: 'gpt4', label: 'GPT-4o Premium', icon: '🤖', provider: 'OpenAI' },
+    { id: 'gemini', label: 'Gemini 2.0 Pro', icon: '♊', provider: 'Google', model: 'gemini-2.0-pro-exp-02-05' },
+    { id: 'claude', label: 'Claude 3.5 Sonnet', icon: '🎭', provider: 'Anthropic', model: 'claude-3-5-sonnet' },
+    { id: 'gpt4', label: 'GPT-4o Premium', icon: '🤖', provider: 'OpenAI', model: 'gpt-4o' },
 ];
 
 function App() {
@@ -22,56 +23,83 @@ function App() {
     const [analysisStep, setAnalysisStep] = useState(0); // 0: Upload, 1: Inspection, 2: Proposal
     const [scopeDropdownOpen, setScopeDropdownOpen] = useState(false);
     const [engineDropdownOpen, setEngineDropdownOpen] = useState(false);
+    const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+    const [showKeyModal, setShowKeyModal] = useState(!apiKey);
 
-    // V4: Editable Variables State
     const [editableVars, setEditableVars] = useState([]);
     const [projectedTotal, setProjectedTotal] = useState(0);
-
-    const [results, setResults] = useState({
-        cleaning: null,
-        demolition: null,
-        painting: null
-    });
 
     const fileInputRef = useRef(null);
     const scopeRef = useRef(null);
     const engineRef = useRef(null);
 
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (scopeRef.current && !scopeRef.current.contains(event.target)) setScopeDropdownOpen(false);
-            if (engineRef.current && !engineRef.current.contains(event.target)) setEngineDropdownOpen(false);
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    // V4: Recalculate total whenever variables change
-    useEffect(() => {
         const total = editableVars.reduce((acc, curr) => acc + (curr.qty * curr.unitCost), 0);
         setProjectedTotal(total);
     }, [editableVars]);
 
     const handleZoneClick = () => {
+        if (!apiKey) { setShowKeyModal(true); return; }
         fileInputRef.current.click();
     };
 
-    const handleFileChange = (e) => {
+    const handleFileChange = async (e) => {
         if (e.target.files.length > 0) {
-            processAnalysis();
+            const file = e.target.files[0];
+            processRealAIAnalysis(file);
         }
     };
 
-    const processAnalysis = () => {
+    const fileToGenerativePart = async (file) => {
+        const base64EncodedDataPromise = new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.readAsDataURL(file);
+        });
+        return {
+            inlineData: { data: await base64EncodedDataPromise, mimeType: file.type },
+        };
+    };
+
+    const processRealAIAnalysis = async (file) => {
+        if (!apiKey) { alert("Please provide a Gemini API Key first."); return; }
         setAnalyzing(true);
-        const delay = 1500;
-        setTimeout(() => {
-            setAnalyzing(false);
-            const initialData = getDefaultVariables(currentScope.id);
-            setEditableVars(initialData);
-            setResults(prev => ({ ...prev, [currentScope.id]: { ...currentScope.data, engine: currentEngine } }));
+
+        try {
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Use flash for speed/reliability with PDFs
+
+            const prompt = `Act as an expert construction estimator. Analyze this PDF blueprint for ${currentScope.label} specifics. 
+      Identify essential project variables like total area, wall lengths, restroom counts, or material needs.
+      
+      Return ONLY a JSON array of variables with this structure:
+      [
+        { "id": 1, "label": "Variable Name", "qty": 100, "unit": "sq.ft", "unitCost": 0.50 },
+        ...
+      ]
+      Limit to the top 4 most critical variables for a bidding proposal. 
+      Estimate realistic market unit costs if not specified. Sum should be realistic for the detected scope.`;
+
+            const imageParts = [await fileToGenerativePart(file)];
+            const result = await model.generateContent([prompt, ...imageParts]);
+            const response = await result.response;
+            const text = response.text();
+
+            // Basic JSON extraction from markdown if AI wraps it
+            const jsonStr = text.match(/\[.*\]/s)?.[0] || text;
+            const parsedVars = JSON.parse(jsonStr);
+
+            setEditableVars(parsedVars);
             setAnalysisStep(1);
-        }, delay);
+        } catch (error) {
+            console.error("AI Extraction Error:", error);
+            alert("AI failed to read the PDF. Using fallback simulation data.");
+            // Fallback
+            setEditableVars(getDefaultVariables(currentScope.id));
+            setAnalysisStep(1);
+        } finally {
+            setAnalyzing(false);
+        }
     };
 
     const getDefaultVariables = (scope) => {
@@ -83,19 +111,11 @@ function App() {
                 { id: 4, label: 'Project Mobilization', qty: 1, unit: 'fee', unitCost: 350.00 },
             ];
         }
-        if (scope === 'demolition') {
-            return [
-                { id: 1, label: 'Interior Gyp Walls', qty: 450, unit: 'linear ft', unitCost: 12.00 },
-                { id: 2, label: 'Flooring (Tile/Carpet)', qty: 2200, unit: 'sq.ft', unitCost: 2.50 },
-                { id: 3, label: 'Debris Disposal (Est)', qty: 8.5, unit: 'tons', unitCost: 350.00 },
-                { id: 4, label: 'Heavy Equipment Ops', qty: 2, unit: 'days', unitCost: 1200.00 },
-            ];
-        }
         return [
-            { id: 1, label: 'Wall Prime & 2-Coats', qty: 12500, unit: 'sq.ft', unitCost: 0.85 },
-            { id: 2, label: 'Drywall Repair / Prep', qty: 24, unit: 'hrs', unitCost: 65.00 },
-            { id: 3, label: 'Luxury Finish Upgrade', qty: 1, unit: 'lot', unitCost: 1450.00 },
-            { id: 4, label: 'Material Surcharge', qty: 1, unit: 'ea', unitCost: 550.00 },
+            { id: 1, label: 'Interior Gyp Walls', qty: 450, unit: 'linear ft', unitCost: 12.00 },
+            { id: 2, label: 'Flooring (Tile/Carpet)', qty: 2200, unit: 'sq.ft', unitCost: 2.50 },
+            { id: 3, label: 'Debris Disposal (Est)', qty: 8.5, unit: 'tons', unitCost: 350.00 },
+            { id: 4, label: 'Heavy Equipment Ops', qty: 2, unit: 'days', unitCost: 1200.00 },
         ];
     };
 
@@ -105,20 +125,45 @@ function App() {
 
     const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 
+    const saveApiKey = (key) => {
+        setApiKey(key);
+        localStorage.setItem('gemini_api_key', key);
+        setShowKeyModal(false);
+    };
+
     return (
         <div className="app-container">
+            {showKeyModal && (
+                <div className="modal-overlay">
+                    <div className="key-modal">
+                        <h2>🛠️ Set Up Your AI Scout</h2>
+                        <p>To perform real PDF analysis, please enter your <strong>Google AI (Gemini) API Key</strong>. It is stored only in your local browser.</p>
+                        <input
+                            type="password"
+                            placeholder="Enter Gemini API Key..."
+                            className="key-input"
+                            onKeyDown={(e) => e.key === 'Enter' && saveApiKey(e.target.value)}
+                        />
+                        <div className="modal-actions">
+                            <button className="primary-btn" onClick={() => saveApiKey(document.querySelector('.key-input').value)}>Save & Connect</button>
+                            <button className="ghost-btn" onClick={() => setShowKeyModal(false)}>Process without AI (Demo Mode)</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <nav className="top-nav">
                 <div className="nav-logo">SMART<span>BID</span> AI</div>
                 <div className="nav-controls">
                     <div className="custom-dropdown" ref={scopeRef}>
                         <label className="dropdown-label">CONSTRUCTION SCOPE</label>
-                        <button className="dropdown-trigger" onClick={() => setScopeDropdownOpen(!scopeDropdownOpen)}>
+                        <button className="dropdown-trigger" onClick={() => { setScopeDropdownOpen(!scopeDropdownOpen); setEngineDropdownOpen(false); }}>
                             <span className="icon">{currentScope.icon}</span>
                             <span className="label-text">{currentScope.label}</span>
-                            <span className={`arrow ${scopeDropdownOpen ? 'up' : 'down'}`}>▾</span>
+                            <span className="arrow">▾</span>
                         </button>
                         {scopeDropdownOpen && (
-                            <div className="dropdown-menu animate-fade-in">
+                            <div className="dropdown-menu">
                                 {SCOPES.map(s => (
                                     <div key={s.id} className={`menu-item ${currentScope.id === s.id ? 'active' : ''}`} onClick={() => { setCurrentScope(s); setScopeDropdownOpen(false); setAnalysisStep(0); }}>
                                         <span className="icon">{s.icon}</span> {s.label}
@@ -130,13 +175,13 @@ function App() {
                     <div className="nav-divider"></div>
                     <div className="custom-dropdown" ref={engineRef}>
                         <label className="dropdown-label">INTELLIGENCE ENGINE</label>
-                        <button className="dropdown-trigger engine-trigger" onClick={() => setEngineDropdownOpen(!engineDropdownOpen)}>
+                        <button className="dropdown-trigger engine-trigger" onClick={() => { setEngineDropdownOpen(!engineDropdownOpen); setScopeDropdownOpen(false); }}>
                             <span className="icon">{currentEngine.icon}</span>
                             <span className="label-text">{currentEngine.label}</span>
-                            <span className={`arrow ${engineDropdownOpen ? 'up' : 'down'}`}>▾</span>
+                            <span className="arrow">▾</span>
                         </button>
                         {engineDropdownOpen && (
-                            <div className="dropdown-menu animate-fade-in">
+                            <div className="dropdown-menu">
                                 {AI_ENGINES.map(e => (
                                     <div key={e.id} className={`menu-item engine-item ${currentEngine.id === e.id ? 'active' : ''}`} onClick={() => { setCurrentEngine(e); setEngineDropdownOpen(false); }}>
                                         <span className="icon">{e.icon}</span>
@@ -149,6 +194,7 @@ function App() {
                             </div>
                         )}
                     </div>
+                    {apiKey && <button className="settings-btn" onClick={() => setShowKeyModal(true)}>⚙️</button>}
                 </div>
             </nav>
 
@@ -158,7 +204,7 @@ function App() {
                         <header className="hero">
                             <div className="engine-chip">Powered by {currentEngine.label}</div>
                             <h1>{currentScope.label} Extraction</h1>
-                            <p>Upload blueprints for high-precision neural analysis and editable bid modeling.</p>
+                            <p>Upload blueprints for real {currentEngine.id === 'gemini' ? 'neural' : 'advanced'} analysis and bid modeling.</p>
                         </header>
                         <div className="upload-section">
                             <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} accept=".pdf" />
@@ -166,8 +212,8 @@ function App() {
                                 {analyzing ? (
                                     <div className="status">
                                         <div className="spinner-container"><div className="spinner"></div><div className="spinner-pulse"></div></div>
-                                        <p className="analyzing-text">Neural Analysis In Progress...</p>
-                                        <span className="analyzing-sub">Mining {currentScope.label} finish schedules</span>
+                                        <p className="analyzing-text">AI Reading PDF in Real-time...</p>
+                                        <span className="analyzing-sub">Identifying {currentScope.label} schedules and quantities</span>
                                     </div>
                                 ) : (
                                     <div className="prompt">
@@ -185,9 +231,9 @@ function App() {
                     <div className="inspection-hub animate-fade-in">
                         <header className="step-header-v4">
                             <div className="header-meta">
-                                <div className="step-count">Interactive Inspection (Step 1)</div>
-                                <h2>Neural Audit Hub</h2>
-                                <p>Adjust extracted variables to refine the bid in real-time.</p>
+                                <div className="step-count">Agent Audit (Step 1)</div>
+                                <h2>Neural Results Hub</h2>
+                                <p>Verify and edit the AI-extracted variables before finalizing the bid.</p>
                             </div>
                             <div className="recalculation-status">
                                 <span className="status-label">Projected Bid Total</span>
@@ -227,12 +273,12 @@ function App() {
                             </table>
 
                             <div className="action-bar">
-                                <button className="secondary-btn" onClick={() => setAnalysisStep(0)}>← Re-analyze PDF</button>
+                                <button className="secondary-btn" onClick={() => setAnalysisStep(0)}>← Upload New PDF</button>
                                 <div className="agent-signature">
                                     <span className="agent-icon">{currentEngine.icon}</span>
                                     <div className="agent-text">
                                         <strong>{currentEngine.label}</strong>
-                                        <span>Audit Active</span>
+                                        <span>Extraction Active</span>
                                     </div>
                                 </div>
                                 <button className="primary-btn" onClick={() => setAnalysisStep(2)}>
@@ -250,7 +296,7 @@ function App() {
                             <button className="back-link" onClick={() => setAnalysisStep(1)}>← Back to Inspection</button>
                             <div className="badge">
                                 <span className="scope-tag">{currentScope.icon} {currentScope.label}</span>
-                                <span className="engine-tag">{currentEngine.label} Certified</span>
+                                <span className="engine-tag">{currentEngine.label} Sealed</span>
                             </div>
                         </header>
 
@@ -261,7 +307,7 @@ function App() {
                             </header>
 
                             <section className="doc-page">
-                                <h2><span>01</span> Project Scope & Final Investment</h2>
+                                <h2><span>01</span> Project Scope & Calculated Investment</h2>
                                 <div className="scope-summary-v4">
                                     <div className="summary-pill">Scope: {currentScope.label}</div>
                                     <div className="summary-pill">Engine: {currentEngine.label}</div>
@@ -282,7 +328,7 @@ function App() {
                                 <div className="total-box-v4">
                                     <div className="total-label">
                                         <h3>Total Proposed Investment</h3>
-                                        <p>All taxes and disposal fees included as calculated by {currentEngine.label}</p>
+                                        <p>Bidding calculated by construction-specialized {currentEngine.label} AI.</p>
                                     </div>
                                     <div className="total-value">{formatCurrency(projectedTotal)}</div>
                                 </div>
@@ -290,8 +336,8 @@ function App() {
 
                             <footer className="proposal-footer">
                                 <div className="sig-area">
-                                    <div className="sig-box"><p>Contractor Signature</p></div>
-                                    <div className="sig-box"><p>Project Owner Approval</p></div>
+                                    <div className="sig-box"><p>Contract Manager Signature</p></div>
+                                    <div className="sig-box"><p>Project Owner Acceptance</p></div>
                                 </div>
                             </footer>
                         </div>
@@ -301,7 +347,7 @@ function App() {
 
             <style>{`
         :root { --accent: #3b82f6; --primary: #0f172a; --text-muted: #64748b; }
-        .app-container { min-height: 100vh; width: 100%; display: flex; flex-direction: column; align-items: center; background: #f8fafc; font-family: 'Inter', sans-serif; }
+        .app-container { min-height: 100vh; width: 100%; display: flex; flex-direction: column; align-items: center; background: #f8fafc; font-family: 'Inter', sans-serif; color: var(--primary); }
         
         .top-nav { width: 100%; height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: white; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 1000; }
         .nav-logo { font-weight: 800; font-size: 1.4rem; color: var(--primary); }
@@ -311,7 +357,7 @@ function App() {
 
         .custom-dropdown { position: relative; }
         .dropdown-label { font-size: 0.6rem; font-weight: 800; color: #94a3b8; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
-        .dropdown-trigger { display: flex; align-items: center; gap: 10px; padding: 8px 16px; min-width: 220px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; font-weight: 600; color: var(--primary); cursor: pointer; transition: 0.2s; }
+        .dropdown-trigger { display: flex; align-items: center; gap: 10px; padding: 8px 16px; min-width: 240px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; font-weight: 600; color: var(--primary); cursor: pointer; transition: 0.2s; }
         .dropdown-trigger:hover { border-color: var(--accent); background: white; }
         .label-text { flex: 1; text-align: left; font-size: 0.85rem; }
         .engine-trigger { border-left: 4px solid var(--accent); }
@@ -323,7 +369,7 @@ function App() {
         .engine-info { display: flex; flex-direction: column; line-height: 1.3; }
         .provider { font-size: 0.7rem; opacity: 0.6; }
 
-        .content-area { width: 100%; max-width: 1200px; padding: 60px 20px; }
+        .content-area { width: 100%; max-width: 1200px; padding: 60px 20px; flex: 1; }
         .hero { text-align: center; margin-bottom: 60px; }
         .engine-chip { display: inline-block; padding: 6px 14px; background: #eff6ff; color: var(--accent); border-radius: 50px; font-weight: 700; font-size: 0.7rem; margin-bottom: 24px; border: 1px solid #dbeafe; }
         .hero h1 { font-size: 3.5rem; font-weight: 800; color: var(--primary); letter-spacing: -2px; }
@@ -335,7 +381,17 @@ function App() {
         .spinner { width: 100%; height: 100%; border: 4px solid #f3f3f3; border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* V4: INSPECTION HUB ENHANCEMENTS */
+        /* V5: REAL AI OVERLAYS */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+        .key-modal { background: white; padding: 50px; border-radius: 40px; max-width: 500px; width: 90%; text-align: center; box-shadow: 0 50px 100px rgba(0,0,0,0.3); }
+        .key-modal h2 { font-size: 2rem; font-weight: 800; margin-bottom: 12px; }
+        .key-modal p { color: var(--text-muted); margin-bottom: 30px; font-size: 1rem; line-height: 1.6; }
+        .key-input { width: 100%; padding: 18px 24px; border-radius: 16px; border: 2px solid #e2e8f0; font-size: 1rem; margin-bottom: 30px; transition: 0.3s; }
+        .key-input:focus { border-color: var(--accent); outline: none; }
+        .modal-actions { display: flex; flex-direction: column; gap: 12px; }
+        .ghost-btn { background: none; border: none; color: var(--text-muted); font-weight: 600; cursor: pointer; padding: 12px; }
+
+        /* INSPECTION HUB STYLES */
         .step-header-v4 { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 50px; }
         .header-meta h2 { font-size: 2.8rem; font-weight: 800; color: var(--primary); letter-spacing: -1px; margin-bottom: 4px; }
         .recalculation-status { background: var(--primary); padding: 24px 40px; border-radius: 24px; text-align: right; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2); }
@@ -345,46 +401,38 @@ function App() {
         .editable-table { width: 100%; border-collapse: separate; border-spacing: 0 12px; margin-bottom: 40px; }
         .editable-table th { text-align: left; padding: 0 20px; font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
         .editable-table tr td { background: white; padding: 24px 20px; border-radius: 16px; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; }
-        .editable-table tr td:first-child { border-left: 1px solid #f1f5f9; border-radius: 16px 0 0 16px; }
-        .editable-table tr td:last-child { border-right: 1px solid #f1f5f9; border-radius: 0 16px 16px 0; }
         
-        .v-label-cell { font-weight: 700; color: var(--primary); font-size: 1rem; }
         .qty-input { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 16px; border-radius: 10px; width: 120px; font-weight: 800; font-size: 1rem; color: var(--accent); }
-        .v-unit { font-weight: 600; color: var(--text-muted); font-size: 0.85rem; }
-        .v-cost { font-weight: 600; color: var(--text-muted); }
-        .v-subtotal { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
+        .v-subtotal { font-weight: 800; font-size: 1.1rem; }
 
         .agent-signature { display: flex; align-items: center; gap: 14px; padding: 12px 24px; background: white; border: 1px solid #e2e8f0; border-radius: 100px; }
-        .agent-icon { font-size: 1.2rem; }
-        .agent-text { display: flex; flex-direction: column; line-height: 1; }
-        .agent-text strong { font-size: 0.75rem; color: var(--primary); }
-        .agent-text span { font-size: 0.65rem; color: #10b981; font-weight: 800; text-transform: uppercase; }
+        .agent-text strong { font-size: 0.75rem; }
+        .agent-text span { font-size: 0.65rem; color: #10b981; font-weight: 800; }
 
-        /* V4: PROPOSAL ENHANCEMENTS */
-        .scope-summary-v4 { display: flex; gap: 12px; margin-bottom: 40px; }
-        .summary-pill { padding: 6px 14px; background: #f1f5f9; border-radius: 8px; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
-        .final-ledger { margin-bottom: 60px; }
-        .item-info { display: flex; flex-direction: column; }
-        .item-nm { font-weight: 700; color: var(--primary); font-size: 1.1rem; margin-bottom: 4px; }
-        .item-dt { font-size: 0.8rem; color: var(--text-muted); }
-        .item-val { font-weight: 800; color: var(--primary); font-size: 1.2rem; }
-
-        .total-box-v4 { background: var(--primary); padding: 40px; border-radius: 24px; display: flex; justify-content: space-between; align-items: center; color: white; }
-        .total-label h3 { font-size: 1.4rem; font-weight: 800; margin-bottom: 4px; }
-        .total-label p { opacity: 0.6; font-size: 0.85rem; }
+        /* PROPOSAL STYLES */
+        .proposal-view { width: 100%; max-width: 1000px; margin: 0 auto; }
+        .proposal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .proposal-doc { background: white; border-radius: 32px; padding: 80px; box-shadow: 0 30px 60px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; }
+        .doc-header h1 { font-size: 2.8rem; font-weight: 800; color: var(--primary); margin-bottom: 10px; }
+        
+        .item-row { display: flex; justify-content: space-between; padding: 20px 0; border-bottom: 1px solid #f1f5f9; }
+        .total-box-v4 { background: var(--primary); padding: 40px; border-radius: 24px; display: flex; justify-content: space-between; align-items: center; color: white; margin-top: 50px; }
         .total-value { font-size: 3rem; font-weight: 800; color: #60a5fa; letter-spacing: -2px; }
 
-        .primary-btn { background: var(--primary); color: white; border: none; padding: 18px 40px; border-radius: 18px; font-weight: 700; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2); }
-        .primary-btn:hover { background: #1e293b; transform: translateY(-2px); shadow: 0 15px 40px rgba(15, 23, 42, 0.35); }
-        .secondary-btn { background: none; border: none; color: var(--text-muted); font-weight: 700; cursor: pointer; }
-        .back-link { background: none; border: none; color: var(--accent); font-weight: 800; cursor: pointer; margin-bottom: 30px; font-size: 0.9rem; }
+        .primary-btn { background: var(--primary); color: white; border: none; padding: 18px 40px; border-radius: 18px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        .primary-btn:hover { background: #1e293b; transform: translateY(-2px); }
+
+        .settings-btn { background: none; border: none; cursor: pointer; font-size: 1.2rem; filter: grayscale(1); opacity: 0.5; transition: 0.3s; }
+        .settings-btn:hover { filter: grayscale(0); opacity: 1; }
 
         .animate-fade-in { animation: fadeIn 0.6s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        @media (max-width: 1024px) {
-            .step-header-v4 { flex-direction: column; align-items: flex-start; gap: 30px; }
+        @media (max-width: 768px) {
+            .step-header-v4 { flex-direction: column; align-items: flex-start; gap: 20px; }
             .recalculation-status { width: 100%; text-align: left; }
+            .top-nav { flex-direction: column; height: auto; padding: 20px; gap: 20px; }
+            .nav-controls { flex-direction: column; width: 100%; }
         }
       `}</style>
         </div>
