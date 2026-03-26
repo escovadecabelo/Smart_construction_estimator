@@ -150,10 +150,25 @@ function App() {
     };
 
     const getExternalPrompt = () => {
-        return `Act as an expert construction estimator. Analyze my PDF blueprint for ${currentScope.label} specifics. 
-Identify essential project variables like total area, wall lengths, restroom counts, or material needs.
-Return ONLY a JSON array with these 4 fields: label, qty, unit, unitCost.
-Limit to top 4 variables. Format example: [{ "id": 1, "label": "Gyp Walls", "qty": 450, "unit": "ft", "unitCost": 12.00 }]`;
+        return `Act as a Senior Construction Project Manager and Chief Estimator. 
+Your objective is to conduct a Deep Spatial Analysis and Material Audit of the attached blueprint for ${currentScope.label}.
+
+COMPREHENSIVE ANALYSIS STEPS:
+1. SPATIAL DATA: Extract precise measurements (Area in sq.ft, Linear Footage, Volume where applicable).
+2. MATERIAL SCHEDULES: Identify specific material types mentioned and their required quantities.
+3. LABOR & LOGISTICS: Estimate required man-hours and logistical needs for this scope.
+4. MARKET RESEARCH: Use your deep knowledge to apply CURRENT market rates for both Labor and Materials.
+
+OUTPUT REQUIREMENTS:
+Return ONLY a valid JSON array of objects. Each object must represent a project variable essential for a professional bid.
+Required fields for EACH object:
+- label: Descriptive name of the line item (e.g., 'Level 1 Gyp Wall Installation')
+- qty: Numeric quantity 
+- unit: Standard unit of measure (sq.ft, ft, units, tons, etc.)
+- unitCost: Current market rate (USD) per unit.
+
+ITEMIZATION: Provide a comprehensive list of all primary and secondary variables found.
+Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "unitCost": 12.50}]`;
     };
 
     const handleJSONImport = () => {
@@ -272,10 +287,10 @@ Limit to top 4 variables. Format example: [{ "id": 1, "label": "Gyp Walls", "qty
                             <div className="modal-overlay" onClick={() => setShowWebAIScan(false)}>
                                 <div className="key-modal" onClick={e => e.stopPropagation()}>
                                     <div className="modal-header">
-                                        <h2>Manual Web AI Helper</h2>
+                                        <h2>Master Scout AI Helper</h2>
                                         <button className="close-x" onClick={() => setShowWebAIScan(false)}>×</button>
                                     </div>
-                                    <p>Deep PDF analysis can sometimes be better in the official web apps. Follow these steps:</p>
+                                    <p>Conduct **Deep Research** and PDF analysis using the full intelligence of web-based AI. Follow these steps:</p>
 
                                     <div className="helper-steps">
                                         <div className="h-step">
