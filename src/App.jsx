@@ -161,6 +161,10 @@ function App() {
         setEditableVars(prev => prev.map(v => v.id === id ? { ...v, included: !v.included } : v));
     };
 
+    const handlePrint = () => {
+        window.print();
+    };
+
     const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 
     const copyToClipboard = (text) => {
@@ -447,11 +451,14 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
 
                 {analysisStep === 2 && (
                     <div className="proposal-view animate-fade-in">
-                        <header className="proposal-header">
+                        <header className="proposal-header no-print">
                             <button className="back-link" onClick={() => setAnalysisStep(1)}>← Back to Inspection</button>
-                            <div className="badge">
-                                <span className="scope-tag">{currentScope.icon} {currentScope.label}</span>
-                                <span className="engine-tag">{currentEngine.label} Sealed</span>
+                            <div className="proposal-actions">
+                                <button className="print-btn" onClick={handlePrint}>Print or Save as PDF</button>
+                                <div className="badge">
+                                    <span className="scope-tag">{currentScope.icon} {currentScope.label}</span>
+                                    <span className="engine-tag">{currentEngine.label} Sealed</span>
+                                </div>
                             </div>
                         </header>
 
@@ -591,6 +598,24 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
         .sig-box p { font-weight: 800; font-size: 1.1rem; color: #1e293b; margin-bottom: 4px; }
         .sig-box span { font-size: 0.85rem; color: #64748b; font-weight: 600; }
         .sig-line { border-top: 2px solid #e2e8f0; margin-bottom: 15px; padding-top: 5px; }
+
+        .proposal-actions { display: flex; align-items: center; gap: 20px; }
+        .print-btn { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
+        .print-btn:hover { background: #2563eb; transform: scale(1.05); }
+
+        @media print {
+            body { background: white; margin: 0; padding: 0; }
+            .top-nav, .no-print, .action-bar, .back-link, .print-btn, .nav-logo, .nav-controls, .custom-dropdown, .nav-divider { display: none !important; }
+            .app-container { background: white; padding: 0; min-height: auto; }
+            .content-area { max-width: 100%; padding: 0; margin: 0; }
+            .proposal-view { max-width: 100%; padding: 0; margin: 0; }
+            .proposal-doc { box-shadow: none; border: none; padding: 0; margin: 0; width: 100%; }
+            .proposal-header { display: none; }
+            .animate-fade-in { animation: none !important; }
+            .total-box-v4 { background: #f1f5f9 !important; color: #0f172a !important; border: 1px solid #cbd5e1; }
+            .total-value { color: #1d4ed8 !important; }
+            @page { margin: 1.5cm; }
+        }
         
         .item-row { display: flex; justify-content: space-between; padding: 20px 0; border-bottom: 1px solid #f1f5f9; }
         .total-box-v4 { background: var(--primary); padding: 40px; border-radius: 24px; display: flex; justify-content: space-between; align-items: center; color: white; margin-top: 50px; }
