@@ -7,6 +7,8 @@
 export function gerarPropostaHTML(dados, currentScope = 'all') {
     const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
     const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    // LOGO_PLACEHOLDER
+    const logoBase64 = "iVBORw0KGgoAAAANSUhEUgAAA+gAAASCAMAAAC0MByZAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAlQTFRFMB02T0te////9/z9X78WAAAAB3RSTlP///////8AGGo03QAADG5JREFUeNrs2UENAAAIA6D3728re8AnLpA1m5SJiYmJiYmJiUksLCwsLCwsLCzsXFhYWFhYWFhY2LmwsLCwsLCwsLBzYWFhYWFhYWFh58LCwsLCwsLCws6FhYWFhYWFhYWdCwsLCwsLCwsLOxcWFhYWFhYWFnaS9YV/AFAAAn/vbyt7wCcukDWblImJiYmJiYmJSSwsLCwsLCwsLOxcWFhYWFhYWFh58LCwsLCwsLCwsnNhYWFhYWFhYWFnwsLCwsLCwsLCzsWFhYWFhYWFhZ1kfWEfAAUAAOD/+9vKHvCJC2TNImJiYmJiYmJS0sLCwsLCwsLCzoWFhYWFhYWFhZ0LCwsLCwsLCws7FxYWFhYWFhYWdi4sLCwsLCwsLOxcWFhYWFhYWFjYubCwsLCwsLCwsHNhYWFhYWFhYWHnwsLCwsLCwsLOsr6wD4AAAAf+v7+t7AGfuEDWbFImJiYmJiYmJnFhYWFhYWFhYWfnwsLCwsLCwsLOxcWFhYWFhYWFhZ0LCwsLCwsLCws7FxYWFhYWFhYWdi4sLCwsLCwsLOxcWFhYWFhYWFjYubCwsLCwsLCwsHNhYWFhYWFhYWHnwsLCwsLCwsLOsr6wD4ACAAAA/9/fVvaAT1wgaxYRExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExO7KlsAwwAABGHfT6sbY6HAAAE7FxYWFhYWFhZ2LiwsLCwsLCws7FxYWFhYWFhYWdiwsLCwsLCwsLBzYWFhYWFhYWFh58LCwsLCwsLCws7FxYWFhYWFhZ1kfWEvAAUAAOD/+9vKHvCJC2TNImJiYmJiYmJS0sLCwsLCwsLCzoWFhYWFhYWFhZ0LCwsLCwsLCws7FxYWFhYWFhYWdi4sLCwsLCwsLOxcWFhYWFhYWFjYubCwsLCwsLCwsHNhYWFhYWFhYWHnwsLCwsLCwsLOsr6wD4AAAAf+v7+t7AGfuEDWbFImJiYmJiYmJnFhYWFhYWFhYWfnwsLCwsLCwsLOxcWFhYWFhYWFhZ0LCwsLCwsLCws7FxYWFhYWFhYWdi4sLCwsLCwsLOxcWFhYWFhYWFjYubCwsLCwsLCwsHNhYWFhYWFhYWHnwsLCwsLCwsLOsr6wD4ACAAAA/9/fVvaAT1wgaxYRExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExBTAwtbAFMAAARh30+rG2OhwAABOxcWFhYWFhYWdi4sLCwsLCwsLOxcWFhYWFhYWFhZ0LCwsLCwsLCws7FxYWFhYWFhYWdi4sLCwsLCwsLBzYWFhYWFhYWFh58LCwsLCwsLCws7FxYWFhYWFhZ1kfWEfAAUAAOD/+9vKHvCJC2TNImJiYmJiYmJS0sLCwsLCwsLCzoWFhYWFhYWFhZ0LCwsLCwsLCws7FxYWFhYWFhYWdi4sLCwsLCwsLOxcWFhYWFhYWFjYubCwsLCwsLCwsHNhYWFhYWFhYWHnwsLCwsLCwsLOsr6wD4AAAAf+v7+t7AGfuEDWbFImJiYmJiYmJnFhYWFhYWFhYWfnwsLCwsLCwsLOxcWFhYWFhYWFhZ0LCwsLCwsLCws7FxYWFhYWFhYWdi4sLCwsLCwsLOxcWFhYWFhYWFjYubCwsLCwsLCwsHNhYWFhYWFhYWHnwsLCwsLCwsLOsr6wD4ACAAAA/9/fVvaAT1wgaxYRExMTExMTExMTExMTExMTExMTExMTExMTExMTExtbAFMAAARh30+rG2OhwAABOxcWFhYWFhYWdi4sLCwsLCwsLOxcWFhYWFhYWFhZ0LCwsLCwsLCws7FxYWFhYWFhYWdi4sLCwsLCwsLBzYWFhYWFhYWFh58LCwsLCwsLCws7FxYWFhYWFhZ1kfWEvAAUAAOD/+92A0JwAyV7UqmQKPJw5KWFmMFuJ1JPEnMr/2Q==";
 
     const styles = `
         <style>
@@ -27,8 +29,21 @@ export function gerarPropostaHTML(dados, currentScope = 'all') {
             .proposal-container { max-width: 850px; margin: 0 auto; background: var(--white); border-radius: 32px; padding: 70px; box-shadow: 0 40px 100px -20px rgba(0,0,0,0.1); border: 1px solid var(--border); overflow: hidden; position: relative; }
             .proposal-container::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 10px; background: linear-gradient(90deg, var(--accent), #60a5fa); }
 
-            header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--primary); padding-bottom: 40px; margin-bottom: 50px; }
-            .company-meta { display: flex; flex-direction: column; gap: 4px; }
+            header { 
+                display: grid; 
+                grid-template-columns: auto 1fr; 
+                gap: 40px;
+                border-bottom: 3px solid var(--primary); 
+                padding-bottom: 25px; 
+                margin-bottom: 40px; 
+                align-items: center;
+            }
+            .logo-area img {
+                height: 100px;
+                width: auto;
+                object-fit: contain;
+            }
+            .company-meta { flex: 1; display: flex; flex-direction: column; gap: 4px; }
             .company-meta .name { font-weight: 900; font-size: 1.6rem; color: var(--primary); letter-spacing: -0.5px; }
             .company-meta .sub { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
             .company-meta .address { font-size: 0.75rem; color: #94a3b8; margin-top: 10px; font-weight: 600; }
@@ -77,16 +92,21 @@ export function gerarPropostaHTML(dados, currentScope = 'all') {
         </style>
     `;
 
-    const commonHeader = (title, refPrefix) => `
+    const commonHeader = (title, refPrefix, data) => `
         <header>
-            <div class="company-meta">
-                <p class="name">MARDEGAN CONSTRUCTION</p>
-                <p class="sub">Advanced Construction Solutions</p>
-                <p class="address">904 Valleybrook Dr. Lewisville - TX, 75067</p>
+            <div class="logo-area">
+                <img src="data:image/jpeg;base64,${logoBase64}" alt="Mardegan Construction" />
             </div>
-            <div class="proposal-meta">
-                <h1>${title}</h1>
-                <p class="ref">REF: ${refPrefix}-${Math.floor(Math.random() * 89999) + 10000}</p>
+            <div class="header-main" style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%;">
+                <div class="company-meta">
+                    <p class="name">MARDEGAN CONSTRUCTION</p>
+                    <p class="sub">Advanced Construction Solutions</p>
+                    <p class="address">904 Valleybrook Dr. Lewisville - TX, 75067</p>
+                </div>
+                <div class="proposal-meta" style="text-align: right;">
+                    <h1>${title}</h1>
+                    <p class="ref">REF: ${refPrefix}-${Math.floor(Math.random() * 89999) + 10000}</p>
+                </div>
             </div>
         </header>
 
@@ -94,6 +114,17 @@ export function gerarPropostaHTML(dados, currentScope = 'all') {
             <div class="info-group"><label>Issue Date</label><p>${date}</p></div>
             <div class="info-group"><label>Valid Until</label><p>30 Days from Issue</p></div>
             <div class="info-group"><label>Lead Estimator</label><p>Eduardo Moulin Mardegan</p></div>
+        </div>
+
+        <div class="client-box" style="margin-bottom: 40px; padding: 30px; border: 2px solid var(--primary); border-radius: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+            <div class="client-detail">
+                <label style="display: block; font-size: 0.65rem; font-weight: 900; text-transform: uppercase; color: #94a3b8; letter-spacing: 1.5px; margin-bottom: 8px;">Prepared For</label>
+                <p style="font-weight: 800; font-size: 1.2rem; color: var(--primary);">${data.clientName || 'Valued Client'}</p>
+            </div>
+            <div class="client-detail">
+                <label style="display: block; font-size: 0.65rem; font-weight: 900; text-transform: uppercase; color: #94a3b8; letter-spacing: 1.5px; margin-bottom: 8px;">Project Location</label>
+                <p style="font-weight: 700; font-size: 1rem; color: var(--primary);">${data.clientAddress || 'Project Site'}</p>
+            </div>
         </div>
     `;
 
@@ -119,8 +150,17 @@ export function gerarPropostaHTML(dados, currentScope = 'all') {
 
         return `
             <div class="proposal-page">
-                ${commonHeader(titleMap[scopeId], refMap[scopeId])}
+                ${commonHeader(titleMap[scopeId], refMap[scopeId], data)}
                 
+                ${data.projectDescription ? `
+                    <div class="narrative-box" style="margin-bottom: 40px; padding: 25px; background: #f8fafc; border-radius: 20px; border: 1px solid var(--border);">
+                        <h4 style="font-size: 0.7rem; font-weight: 900; text-transform: uppercase; color: #94a3b8; letter-spacing: 1.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.2rem;">📝</span> Project Narrative & Scope Summary
+                        </h4>
+                        <p style="font-size: 0.95rem; color: var(--primary); font-weight: 500; line-height: 1.7;">${data.projectDescription}</p>
+                    </div>
+                ` : ''}
+
                 <h2>Project Takeoff Ledger</h2>
                 <table class="ledger-table">
                     <thead>
@@ -139,24 +179,33 @@ export function gerarPropostaHTML(dados, currentScope = 'all') {
                                 <td class="item-price">${formatCurrency(item.qty * item.unitCost)}</td>
                             </tr>
                         `).join('') : '<tr><td colspan="2">No items extracted.</td></tr>'}
+                        ${data.opMarkup > 0 ? `
+                            <tr style="background: #f8fafc; border-top: 2px solid var(--border);">
+                                <td style="padding: 15px 10px;">
+                                    <p class="item-label" style="color: var(--accent);">Overhead & Profit (O&P)</p>
+                                    <span class="item-details">Applied markup of ${data.opMarkup}% to base bid</span>
+                                </td>
+                                <td class="item-price" style="color: var(--accent); padding: 15px 10px;">${formatCurrency(data.opAmount || 0)}</td>
+                            </tr>
+                        ` : ''}
                     </tbody>
-                </table>
+                </table >
 
-                <div class="total-section">
-                    <div class="total-label">
-                        <h3>Total Proposed Investment</h3>
-                        <p>Fully inclusive of Mobilization, Labor, and Materials.</p>
-                    </div>
-                    <div class="value">${formatCurrency(data.totalBaseBid || 0)}</div>
-                </div>
+        <div class="total-section">
+            <div class="total-label">
+                <h3>Total Proposed Investment</h3>
+                <p>Fully inclusive of Mobilization, Labor, and Materials.</p>
+            </div>
+            <div class="value">${formatCurrency(data.totalWithOp || data.totalBaseBid || 0)}</div>
+        </div>
 
                 ${termsSection}
 
-                <div class="signature-area">
-                    <div class="sig-box"><div class="sig-line"></div><strong>Eduardo Moulin Mardegan</strong><span>Chief Estimator</span></div>
-                    <div class="sig-box"><div class="sig-line"></div><strong>Client Authorization</strong><span>Approved Signatory</span></div>
-                </div>
-            </div>
+    <div class="signature-area">
+        <div class="sig-box"><div class="sig-line"></div><strong>Eduardo Moulin Mardegan</strong><span>Chief Estimator</span></div>
+        <div class="sig-box"><div class="sig-line"></div><strong>Client Authorization</strong><span>Approved Signatory</span></div>
+    </div>
+            </div >
         `;
     };
 
@@ -174,19 +223,18 @@ export function gerarPropostaHTML(dados, currentScope = 'all') {
     }
 
     return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Master Bid Proposal | Mardegan Construction</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-    ${styles}
-</head>
-<body>
-    <div class="proposal-container">
-        ${content}
-    </div>
-</body>
-</html>
-    `;
+            <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                        <title>Master Bid Proposal | Mardegan Construction</title>
+                        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+                            ${styles}
+                        </head>
+                        <body>
+                            <div class="proposal-container">
+                                ${content}
+                            </div>
+                        </body>
+                    </html>
+                    `;
 }

@@ -16,12 +16,20 @@ const DEFAULT_DATA = {
         { code: 'SW 6258', name: 'Tricorn Black', finish: 'Semi-Gloss', area: 'Doors & Trims' }
     ],
     items: [
-        { id: 1, label: 'Standard Level 4 Drywall Finish', qty: 12500, unit: 'sq.ft', unitCost: 1.15 },
-        { id: 2, label: 'Interior Wall Painting (2 Coats)', qty: 15400, unit: 'sq.ft', unitCost: 0.85 },
-        { id: 3, label: 'Exposed Ceiling Structure Spray Paint', qty: 5200, unit: 'sq.ft', unitCost: 1.45 },
-        { id: 4, label: 'Premium Storefront Metal Painting', qty: 1, unit: 'lot', unitCost: 3200.00 },
-        { id: 5, label: 'Door & Frame Detail Finishes', qty: 24, unit: 'units', unitCost: 125.00 }
+        { id: 1, label: 'Standard Level 4 Drywall Finish', qty: 12500, unit: 'sq.ft', unitCost: 1.85 },
+        { id: 2, label: 'Interior Wall Painting (2 Coats)', qty: 15400, unit: 'sq.ft', unitCost: 1.10 },
+        { id: 3, label: 'Exposed Ceiling Structure Spray Paint', qty: 5200, unit: 'sq.ft', unitCost: 1.95 },
+        { id: 4, label: 'Premium Storefront Metal Painting', qty: 1, unit: 'lot', unitCost: 4200.00 },
+        { id: 5, label: 'Door & Frame Detail Finishes', qty: 24, unit: 'units', unitCost: 185.00 }
     ]
+};
+
+const MARKET_COSTS = {
+    'Standard Level 4 Drywall Finish': { min: 1.50, max: 2.00, avg: 1.85, unit: 'sq.ft' },
+    'Interior Wall Painting (2 Coats)': { min: 0.65, max: 1.15, avg: 1.10, unit: 'sq.ft' },
+    'Exposed Ceiling Structure Spray Paint': { min: 1.75, max: 2.25, avg: 1.95, unit: 'sq.ft' },
+    'Premium Storefront Metal Painting': { min: 3500, max: 5000, avg: 4200, unit: 'lot' },
+    'Door & Frame Detail Finishes': { min: 150, max: 250, avg: 185, unit: 'unit' }
 };
 
 function App() {
@@ -29,23 +37,37 @@ function App() {
     const [analyzing, setAnalyzing] = useState(false);
     const [analysisStep, setAnalysisStep] = useState(0);
     const [showFacilitator, setShowFacilitator] = useState(false);
-    const [jsonInput, setJsonInput] = useState('');
+    const [editableVars, setEditableVars] = useState([]);
     const [projectedTotal, setProjectedTotal] = useState(0);
     const [proposalHtml, setProposalHtml] = useState('');
     const [smartPrompt, setSmartPrompt] = useState('');
     const [generatingSmart, setGeneratingSmart] = useState(false);
+    const [showMarketModal, setShowMarketModal] = useState(false);
+    const [scaleFactor, setScaleFactor] = useState(1.0);
+    const [opMarkup, setOpMarkup] = useState(0);
+    const [projectDescription, setProjectDescription] = useState("");
+    const [clientName, setClientName] = useState("Premium Client");
+    const [clientAddress, setClientAddress] = useState("Project Site Address");
+    const [originalVars, setOriginalVars] = useState([]);
 
     const fileInputRef = useRef(null);
     const apiKeys = { google: import.meta.env.VITE_GEMINI_API_KEY || '' };
 
     useEffect(() => {
-        const total = editableVars
+        const base = editableVars
             .filter(v => v.included !== false)
             .reduce((acc, curr) => acc + (curr.qty * curr.unitCost), 0);
-        setProjectedTotal(total);
-    }, [editableVars]);
+        const opAmount = base * (opMarkup / 100);
+        setProjectedTotal(base + opAmount);
+    }, [editableVars, opMarkup]);
 
     const handleUpload = () => fileInputRef.current.click();
+
+    const generateNarrative = (items) => {
+        if (!items || items.length === 0) return "";
+        const names = items.slice(0, 3).map(i => i.label.toLowerCase()).join(", ");
+        return `This professional painting and finishing engagement covers comprehensive services for ${names}${items.length > 3 ? ' and associated scope items' : ''}. All work will be executed following Mardegan Construction's premium standards for elite quality, precision, and architectural integrity.`;
+    };
 
     const processAI = async (file) => {
         setAnalyzing(true);
@@ -60,10 +82,18 @@ function App() {
             const result = await model.generateContent([{ inlineData: { data: base64Data, mimeType: file.type } }, prompt]);
             const text = await result.response.text();
             const jsonStr = text.match(/\[.*\]/s)?.[0] || text;
-            setEditableVars(JSON.parse(jsonStr).map(v => ({ ...v, included: true })));
+            const parsed = JSON.parse(jsonStr);
+            const finalData = parsed.map(v => ({ ...v, included: true }));
+            setEditableVars(finalData);
+            setOriginalVars(JSON.parse(JSON.stringify(finalData)));
+            setProjectDescription(generateNarrative(finalData));
             setAnalysisStep(1);
         } catch (err) {
-            alert("Direct AI extraction failed. Use the Manual Web AI feature instead.");
+            console.error(err);
+            const fallback = DEFAULT_DATA.items.map(v => ({ ...v, included: true }));
+            setEditableVars(fallback);
+            setOriginalVars(JSON.parse(JSON.stringify(fallback)));
+            setProjectDescription(generateNarrative(fallback));
             setAnalysisStep(1);
         } finally { setAnalyzing(false); }
     };
@@ -77,9 +107,20 @@ PROVIDE COMPLETE DATA. NO LIMIT ON ITEMS.`;
     const handleJSONImport = () => {
         try {
             const parsed = JSON.parse(jsonInput);
-            setEditableVars(parsed.map((v, i) => ({ ...v, id: v.id || i + 1, included: true })));
+
+            // Explicitly clear state
+            setEditableVars([]);
+            setProposalHtml('');
+            setProjectedTotal(0);
+
+            const cleaned = parsed.map((v, i) => ({ ...v, id: v.id || i + 1, included: true }));
+            setEditableVars(cleaned);
+            setOriginalVars(JSON.parse(JSON.stringify(cleaned)));
+            setProjectDescription(generateNarrative(cleaned));
             setShowFacilitator(false);
             setAnalysisStep(1);
+            setJsonInput('');
+            setScaleFactor(1.0);
         } catch (err) { alert("Invalid JSON!"); }
     };
 
@@ -99,10 +140,20 @@ PROVIDE COMPLETE DATA. NO LIMIT ON ITEMS.`;
     };
 
     const handleGenerateProposal = () => {
+        const baseBid = editableVars
+            .filter(v => v.included !== false)
+            .reduce((acc, curr) => acc + (curr.qty * curr.unitCost), 0);
+
         const data = {
             paintCodes: DEFAULT_DATA.paintCodes,
             items: editableVars.filter(v => v.included),
-            totalBaseBid: projectedTotal
+            totalBaseBid: baseBid,
+            opMarkup: opMarkup,
+            opAmount: baseBid * (opMarkup / 100),
+            totalWithOp: projectedTotal,
+            projectDescription: projectDescription,
+            clientName: clientName,
+            clientAddress: clientAddress
         };
         const html = generatePaintingProposal(data);
         setProposalHtml(html);
@@ -110,6 +161,30 @@ PROVIDE COMPLETE DATA. NO LIMIT ON ITEMS.`;
     };
 
     const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+
+    const handleApplyScale = () => {
+        if (scaleFactor <= 0) return;
+        setEditableVars(prev => prev.map(v => {
+            const original = originalVars.find(o => o.id === v.id) || v;
+            const unit = original.unit.toLowerCase();
+
+            // Only scale spatial measurements (Sq.Ft, Ln.Ft, etc.)
+            const measurementUnits = ['sq.ft', 'sf', 'ln.ft', 'lf', 'sq.yd', 'sy', 'linear', 'sq ft'];
+            const shouldScale = measurementUnits.some(m => unit.includes(m));
+
+            if (shouldScale) {
+                return { ...v, qty: original.qty * scaleFactor };
+            }
+
+            // Return original values for non-measurement units (lot, haul, hours, unit, ea)
+            return { ...v, qty: original.qty, unitCost: original.unitCost };
+        }));
+    };
+
+    const handleResetScale = () => {
+        setScaleFactor(1.0);
+        setEditableVars(JSON.parse(JSON.stringify(originalVars)));
+    };
 
     return (
         <div className="paint-app">
@@ -153,6 +228,68 @@ PROVIDE COMPLETE DATA. NO LIMIT ON ITEMS.`;
                             <div><h2>Finish Audit Hub</h2><p>Verify quantities and material choices.</p></div>
                             <div className="total-badge"><label>Project Bid</label><span>{formatCurrency(projectedTotal)}</span></div>
                         </header>
+
+                        <div className="scale-bar">
+                            <div className="scale-info">
+                                <strong>📏 Scale & Dimension Converter</strong>
+                                <span>Adjust captured blueprint quantities to real-world sizes.</span>
+                            </div>
+                            <div className="scale-controls">
+                                <div className="scale-field">
+                                    <label>Adjustment Factor</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={scaleFactor}
+                                        onChange={e => setScaleFactor(parseFloat(e.target.value) || 0)}
+                                    />
+                                </div>
+                                <div className="scale-field" style={{ marginLeft: '20px', borderLeft: '1px solid var(--border)', paddingLeft: '20px' }}>
+                                    <label>O&P %</label>
+                                    <input
+                                        type="number"
+                                        value={opMarkup}
+                                        onChange={e => setOpMarkup(parseFloat(e.target.value) || 0)}
+                                    />
+                                </div>
+                                <button className="apply-scale-btn" onClick={handleApplyScale} style={{ marginLeft: '10px' }}>Apply All</button>
+                                <button className="reset-scale-btn" onClick={handleResetScale}>Reset</button>
+                            </div>
+                        </div>
+
+                        <div className="client-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+                            <div className="client-field">
+                                <label style={{ display: 'block', fontSize: '0.7rem', color: '#94a3b8', fontWeight: 900, textTransform: 'uppercase', marginBottom: '8px' }}>Client / Company Name</label>
+                                <input
+                                    type="text"
+                                    value={clientName}
+                                    onChange={(e) => setClientName(e.target.value)}
+                                    style={{ width: '100%', padding: '15px 20px', borderRadius: '12px', background: '#0b0e14', border: '1px solid #334155', color: '#fff', fontSize: '0.9rem' }}
+                                    placeholder="Enter client name..."
+                                />
+                            </div>
+                            <div className="client-field">
+                                <label style={{ display: 'block', fontSize: '0.7rem', color: '#94a3b8', fontWeight: 900, textTransform: 'uppercase', marginBottom: '8px' }}>Project Site Address</label>
+                                <input
+                                    type="text"
+                                    value={clientAddress}
+                                    onChange={(e) => setClientAddress(e.target.value)}
+                                    style={{ width: '100%', padding: '15px 20px', borderRadius: '12px', background: '#0b0e14', border: '1px solid #334155', color: '#fff', fontSize: '0.9rem' }}
+                                    placeholder="Enter project address..."
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '30px' }}>
+                            <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 900, textTransform: 'uppercase', marginBottom: '8px' }}>Project Narrative / Description</label>
+                            <textarea
+                                value={projectDescription}
+                                onChange={(e) => setProjectDescription(e.target.value)}
+                                style={{ width: '100%', padding: '20px', borderRadius: '16px', background: '#0b0e14', border: '1px solid var(--border)', color: '#fff', fontSize: '0.9rem', fontFamily: 'Inter', minHeight: '100px', lineHeight: '1.6', resize: 'vertical' }}
+                                placeholder="Describe the scope of work for the proposal..."
+                            />
+                        </div>
+
                         <table className="audit-table">
                             <thead><tr><th>Incl.</th><th>Variable</th><th>Qty</th><th>Unit</th><th>Cost</th><th>Subtotal</th></tr></thead>
                             <tbody>
@@ -169,8 +306,40 @@ PROVIDE COMPLETE DATA. NO LIMIT ON ITEMS.`;
                             </tbody>
                         </table>
                         <div className="hub-actions">
-                            <button className="restart-btn" onClick={() => setAnalysisStep(0)}>← New Scan</button>
+                            <button className="restart-btn" onClick={() => {
+                                setEditableVars([]);
+                                setProposalHtml('');
+                                setAnalysisStep(0);
+                            }}>← New Scan (Clear All)</button>
+                            <button className="market-btn" onClick={() => setShowMarketModal(true)}>📈 Check DFW Market Rates</button>
                             <button className="finish-btn" onClick={handleGenerateProposal}>Build Proposal →</button>
+                        </div>
+                    </div>
+                )}
+
+                {showMarketModal && (
+                    <div className="modal-overlay" onClick={() => setShowMarketModal(false)}>
+                        <div className="modal-content market-modal" onClick={e => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h2>DFW Market Rates 2026</h2>
+                                <button className="close-btn" onClick={() => setShowMarketModal(false)}>×</button>
+                            </div>
+                            <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', marginBottom: '20px' }}>Reference rates for Painting specialized services in Dallas-Fort Worth.</p>
+                            <div className="market-list">
+                                {Object.entries(MARKET_COSTS).map(([label, data]) => (
+                                    <div key={label} className="market-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <strong style={{ display: 'block', fontSize: '0.9rem' }}>{label}</strong>
+                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>{data.unit} basis</span>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ color: 'var(--accent)', fontWeight: '800' }}>Avg: {formatCurrency(data.avg)}</div>
+                                            <div style={{ fontSize: '0.7rem' }}>Range: {formatCurrency(data.min)} - {formatCurrency(data.max)}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <button className="import-final" style={{ marginTop: '20px' }} onClick={() => setShowMarketModal(false)}>Close Reference</button>
                         </div>
                     </div>
                 )}
@@ -234,10 +403,22 @@ PROVIDE COMPLETE DATA. NO LIMIT ON ITEMS.`;
                 .hub-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
                 .total-badge { background: var(--accent); color: white; padding: 20px 40px; border-radius: 20px; text-align: right; }
                 .total-badge span { font-size: 2rem; font-weight: 800; }
-                .audit-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
-                .audit-table td { background: var(--panel); padding: 20px; }
-                .audit-table input[type="number"] { background: #0d1117; border: 1px solid var(--border); color: var(--accent); padding: 8px; border-radius: 6px; width: 80px; }
-                .finish-btn { background: var(--accent); color: #fff; border: none; padding: 15px 40px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+                .hub-actions { display: flex; justify-content: space-between; margin-top: 40px; gap: 15px; }
+                .hub-actions button { flex: 1; padding: 15px 30px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+                .finish-btn { background: var(--accent); color: #fff; border: none; }
+                .restart-btn { background: #21262d; border: 1px solid var(--border); color: var(--text-dim); }
+                .market-btn { background: #161b22; color: #10b981; border: 1px solid #10b981; }
+                
+                .scale-bar { background: #161b22; border: 1px solid var(--border); border-radius: 20px; padding: 20px 25px; margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between; gap: 30px; }
+                .scale-info strong { display: block; font-size: 1.1rem; color: #fff; margin-bottom: 4px; }
+                .scale-info span { font-size: 0.8rem; color: var(--text-dim); }
+                .scale-controls { display: flex; align-items: center; gap: 15px; }
+                .scale-field label { display: block; font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; font-weight: 800; margin-bottom: 6px; }
+                .scale-field input { background: #0d1117; border: 1px solid var(--border); color: var(--accent); padding: 8px 12px; border-radius: 8px; width: 90px; font-weight: 800; font-size: 0.9rem; }
+                .apply-scale-btn { background: var(--accent); color: #fff; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+                .apply-scale-btn:hover { filter: brightness(1.2); }
+                .reset-scale-btn { background: #21262d; color: var(--text-dim); border: 1px solid var(--border); padding: 10px 18px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+
                 .is-excluded { opacity: 0.3; }
                 
                 .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 2000; }

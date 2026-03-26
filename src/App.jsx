@@ -26,6 +26,30 @@ const COMPANY_INFO = {
     address: '904 Valleybrook Dr. Lewisville - TX, 75067'
 };
 
+const MARKET_COSTS = {
+    painting: {
+        'Standard Level 4 Drywall Finish': { min: 1.50, max: 2.00, avg: 1.85, unit: 'sq.ft' },
+        'Interior Wall Painting (2 Coats)': { min: 0.65, max: 1.15, avg: 1.10, unit: 'sq.ft' },
+        'Exposed Ceiling Structure Spray Paint': { min: 1.75, max: 2.25, avg: 1.95, unit: 'sq.ft' },
+        'Premium Storefront Metal Painting': { min: 3500, max: 5000, avg: 4200, unit: 'lot' },
+        'Door & Frame Detail Finishes': { min: 150, max: 250, avg: 185, unit: 'unit' }
+    },
+    demolition: {
+        'Non-Load Bearing Partition Removal': { min: 4.50, max: 7.50, avg: 5.50, unit: 'sq.ft' },
+        'Acoustic Ceiling Tile & Grid Demo': { min: 1.00, max: 1.50, avg: 1.25, unit: 'sq.ft' },
+        'Carpet & VCT Flooring Removal': { min: 1.50, max: 2.50, avg: 2.15, unit: 'sq.ft' },
+        'Construction Debris Disposal (Roll-off)': { min: 650, max: 850, avg: 725, unit: 'haul' },
+        'Heavy Equipment & Scaffolding Rental': { min: 2000, max: 3000, avg: 2400, unit: 'lot' }
+    },
+    cleaning: {
+        'Phase 1: Rough Clean (Debris & Sweep)': { min: 0.12, max: 0.22, avg: 0.18, unit: 'sq.ft' },
+        'Phase 2: Progress Clean (Detail Dusting)': { min: 0.18, max: 0.35, avg: 0.25, unit: 'sq.ft' },
+        'Phase 3: Final Clean (Turnover Ready)': { min: 0.35, max: 0.75, avg: 0.45, unit: 'sq.ft' },
+        'Phase 4: Puff Clean (Touch-up)': { min: 800, max: 1500, avg: 1200, unit: 'lot' },
+        'Restroom Deep Scrub & Sanitization': { min: 75, max: 125, avg: 95, unit: 'unit' }
+    }
+};
+
 function App() {
     const [view, setView] = useState('launcher'); // 'launcher', 'dashboard'
     const [currentScope, setCurrentScope] = useState(null);
@@ -40,6 +64,13 @@ function App() {
     const [engineDropdownOpen, setEngineDropdownOpen] = useState(false);
     const [smartPrompt, setSmartPrompt] = useState('');
     const [generatingSmart, setGeneratingSmart] = useState(false);
+    const [showMarketModal, setShowMarketModal] = useState(false);
+    const [scaleFactor, setScaleFactor] = useState(1.0);
+    const [opMarkup, setOpMarkup] = useState(0);
+    const [projectDescription, setProjectDescription] = useState("");
+    const [clientName, setClientName] = useState("Premium Client");
+    const [clientAddress, setClientAddress] = useState("Project Site Address");
+    const [originalVars, setOriginalVars] = useState([]);
 
     const fileInputRef = useRef(null);
     const apiKeys = {
@@ -49,11 +80,12 @@ function App() {
     };
 
     useEffect(() => {
-        const total = editableVars
+        const base = editableVars
             .filter(v => v.included !== false)
             .reduce((acc, curr) => acc + (curr.qty * curr.unitCost), 0);
-        setProjectedTotal(total);
-    }, [editableVars]);
+        const opAmount = base * (opMarkup / 100);
+        setProjectedTotal(base + opAmount);
+    }, [editableVars, opMarkup]);
 
     const handleSelectScope = (scope) => {
         setCurrentScope(scope);
@@ -95,16 +127,28 @@ function App() {
             const jsonStr = text.match(/\[.*\]/s)?.[0] || text;
             const parsed = JSON.parse(jsonStr);
 
-            setEditableVars(parsed.map(v => ({ ...v, included: true })));
+            const finalData = parsed.map(v => ({ ...v, included: true }));
+            setEditableVars(finalData);
+            setOriginalVars(JSON.parse(JSON.stringify(finalData))); // Deep copy for reset
+            setProjectDescription(generateNarrative(finalData));
             setAnalysisStep(1);
         } catch (err) {
             console.error(err);
             alert("AI Analysis failed. Falling back to trade simulation data.");
-            setEditableVars(currentScope.data.items.map(v => ({ ...v, included: true })));
+            const fallback = currentScope.data.items.map(v => ({ ...v, included: true }));
+            setEditableVars(fallback);
+            setOriginalVars(JSON.parse(JSON.stringify(fallback)));
+            setProjectDescription(generateNarrative(fallback));
             setAnalysisStep(1);
         } finally {
             setAnalyzing(false);
         }
+    };
+
+    const generateNarrative = (items) => {
+        if (!items || items.length === 0) return "";
+        const names = items.slice(0, 3).map(i => i.label.toLowerCase()).join(", ");
+        return `This professional engagement covers comprehensive services for ${names}${items.length > 3 ? ' and associated scope items' : ''}. All work will be executed following Mardegan Construction's premium standards for elite quality, precision, and architectural integrity.`;
     };
 
     const handleGenerateProposal = () => {
@@ -113,10 +157,18 @@ function App() {
             demolition: orcamentoDemolicao,
             painting: orcamentoPintura
         };
-        // Normalize for generator which expects Portuguese keys in its own logic or handle here
-        // Override the selected scope's items with current editable vars
+        const baseBid = editableVars
+            .filter(v => v.included !== false)
+            .reduce((acc, curr) => acc + (curr.qty * curr.unitCost), 0);
+
         allData[currentScope.id].items = editableVars.filter(v => v.included);
-        allData[currentScope.id].totalBaseBid = projectedTotal;
+        allData[currentScope.id].totalBaseBid = baseBid;
+        allData[currentScope.id].opMarkup = opMarkup;
+        allData[currentScope.id].opAmount = baseBid * (opMarkup / 100);
+        allData[currentScope.id].totalWithOp = projectedTotal;
+        allData[currentScope.id].projectDescription = projectDescription;
+        allData[currentScope.id].clientName = clientName;
+        allData[currentScope.id].clientAddress = clientAddress;
 
         const html = gerarPropostaHTML(allData, currentScope.id);
         setProposalHtml(html);
@@ -170,6 +222,12 @@ PROVIDE A COMPREHENSIVE LIST of all items found. NO LIMIT ON ITEMS.`;
         try {
             const parsed = JSON.parse(jsonInput);
             if (!Array.isArray(parsed)) throw new Error("Input must be a JSON array");
+
+            // Explicitly clear state before adding new data to prevent mixing
+            setEditableVars([]);
+            setProposalHtml('');
+            setProjectedTotal(0);
+
             const cleaned = parsed.map((item, idx) => ({
                 id: item.id || idx + 1,
                 label: item.label || 'Unknown Variable',
@@ -178,16 +236,46 @@ PROVIDE A COMPREHENSIVE LIST of all items found. NO LIMIT ON ITEMS.`;
                 unitCost: parseFloat(item.unitCost) || 0,
                 included: true
             }));
+
+            // Short timeout to ensure state cycle for "clearing cache" effect if desired, 
+            // but React batching handles it. Forced reset by setting after clear.
             setEditableVars(cleaned);
+            setOriginalVars(JSON.parse(JSON.stringify(cleaned)));
+            setProjectDescription(generateNarrative(cleaned));
             setShowFacilitator(false);
             setAnalysisStep(1);
             setJsonInput('');
+            setScaleFactor(1.0);
         } catch (err) {
             alert("Invalid JSON format! Please copy the exact array from the AI.");
         }
     };
 
     const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+
+    const handleApplyScale = () => {
+        if (scaleFactor <= 0) return;
+        setEditableVars(prev => prev.map(v => {
+            const original = originalVars.find(o => o.id === v.id) || v;
+            const unit = original.unit.toLowerCase();
+
+            // Only scale spatial measurements (Sq.Ft, Ln.Ft, etc.)
+            const measurementUnits = ['sq.ft', 'sf', 'ln.ft', 'lf', 'sq.yd', 'sy', 'linear', 'sq ft'];
+            const shouldScale = measurementUnits.some(m => unit.includes(m));
+
+            if (shouldScale) {
+                return { ...v, qty: original.qty * scaleFactor };
+            }
+
+            // Return original values for non-measurement units (lot, haul, hours, unit, ea)
+            return { ...v, qty: original.qty, unitCost: original.unitCost };
+        }));
+    };
+
+    const handleResetScale = () => {
+        setScaleFactor(1.0);
+        setEditableVars(JSON.parse(JSON.stringify(originalVars)));
+    };
 
     return (
         <div className="unified-app">
@@ -286,6 +374,68 @@ PROVIDE A COMPREHENSIVE LIST of all items found. NO LIMIT ON ITEMS.`;
                                         <span>{formatCurrency(projectedTotal)}</span>
                                     </div>
                                 </header>
+
+                                <div className="scale-bar">
+                                    <div className="scale-info">
+                                        <strong>📏 Scale & Dimension Converter</strong>
+                                        <span>Adjust captured blueprint quantities to real-world sizes.</span>
+                                    </div>
+                                    <div className="scale-controls">
+                                        <div className="scale-field">
+                                            <label>Adjustment Factor</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={scaleFactor}
+                                                onChange={e => setScaleFactor(parseFloat(e.target.value) || 0)}
+                                            />
+                                        </div>
+                                        <div className="scale-field" style={{ marginLeft: '20px', borderLeft: '1px solid var(--border)', paddingLeft: '20px' }}>
+                                            <label>O&P Markup %</label>
+                                            <input
+                                                type="number"
+                                                value={opMarkup}
+                                                onChange={e => setOpMarkup(parseFloat(e.target.value) || 0)}
+                                            />
+                                        </div>
+                                        <button className="apply-scale-btn" onClick={handleApplyScale} style={{ marginLeft: '10px' }}>Apply All</button>
+                                        <button className="reset-scale-btn" onClick={handleResetScale}>Reset</button>
+                                    </div>
+                                </div>
+
+                                <div className="client-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+                                    <div className="client-field">
+                                        <label style={{ display: 'block', fontSize: '0.7rem', color: '#94a3b8', fontWeight: 900, textTransform: 'uppercase', marginBottom: '8px' }}>Client / Company Name</label>
+                                        <input
+                                            type="text"
+                                            value={clientName}
+                                            onChange={(e) => setClientName(e.target.value)}
+                                            style={{ width: '100%', padding: '15px 20px', borderRadius: '12px', background: '#0b0e14', border: '1px solid #334155', color: '#fff', fontSize: '0.9rem' }}
+                                            placeholder="Enter client name..."
+                                        />
+                                    </div>
+                                    <div className="client-field">
+                                        <label style={{ display: 'block', fontSize: '0.7rem', color: '#94a3b8', fontWeight: 900, textTransform: 'uppercase', marginBottom: '8px' }}>Project Site Address</label>
+                                        <input
+                                            type="text"
+                                            value={clientAddress}
+                                            onChange={(e) => setClientAddress(e.target.value)}
+                                            style={{ width: '100%', padding: '15px 20px', borderRadius: '12px', background: '#0b0e14', border: '1px solid #334155', color: '#fff', fontSize: '0.9rem' }}
+                                            placeholder="Enter project address..."
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={{ marginBottom: '30px' }}>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--tm)', fontWeight: 900, textTransform: 'uppercase', marginBottom: '8px' }}>Project Narrative / Description</label>
+                                    <textarea
+                                        value={projectDescription}
+                                        onChange={(e) => setProjectDescription(e.target.value)}
+                                        style={{ width: '100%', padding: '20px', borderRadius: '16px', background: '#0b0e14', border: '1px solid var(--border)', color: '#fff', fontSize: '0.9rem', fontFamily: 'Inter', minHeight: '100px', lineHeight: '1.6', resize: 'vertical' }}
+                                        placeholder="Describe the scope of work for the proposal..."
+                                    />
+                                </div>
+
                                 <table className="audit-table">
                                     <thead>
                                         <tr>
@@ -311,8 +461,40 @@ PROVIDE A COMPREHENSIVE LIST of all items found. NO LIMIT ON ITEMS.`;
                                     </tbody>
                                 </table>
                                 <div className="audit-footer">
-                                    <button className="secondary" onClick={() => setAnalysisStep(0)}>← New Scan</button>
+                                    <button className="secondary" onClick={() => {
+                                        setEditableVars([]);
+                                        setProposalHtml('');
+                                        setAnalysisStep(0);
+                                    }}>← New Scan (Clear All)</button>
+                                    <button className="market-btn" onClick={() => setShowMarketModal(true)}>📈 Check Market Costs (DFW)</button>
                                     <button className="primary" onClick={handleGenerateProposal}>Build Proposal →</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {showMarketModal && (
+                            <div className="modal-overlay" onClick={() => setShowMarketModal(false)}>
+                                <div className="modal-content market-modal" onClick={e => e.stopPropagation()}>
+                                    <div className="modal-header">
+                                        <h2>DFW Market Rates 2026</h2>
+                                        <button className="close-btn" onClick={() => setShowMarketModal(false)}>×</button>
+                                    </div>
+                                    <p style={{ color: 'var(--tm)', fontSize: '0.8rem', marginBottom: '20px' }}>Reference rates for ${currentScope.label} specialized services in Dallas-Fort Worth area.</p>
+                                    <div className="market-list">
+                                        {Object.entries(MARKET_COSTS[currentScope.id]).map(([label, data]) => (
+                                            <div key={label} className="market-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                                                <div style={{ flex: 1 }}>
+                                                    <strong style={{ display: 'block', fontSize: '0.9rem' }}>{label}</strong>
+                                                    <span style={{ fontSize: '0.7rem', color: 'var(--tm)' }}>{data.unit} basis</span>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{ color: 'var(--a)', fontWeight: '800' }}>Avg: {formatCurrency(data.avg)}</div>
+                                                    <div style={{ fontSize: '0.7rem' }}>Range: {formatCurrency(data.min)} - {formatCurrency(data.max)}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button className="import-btn" style={{ marginTop: '20px' }} onClick={() => setShowMarketModal(false)}>Close Reference</button>
                                 </div>
                             </div>
                         )}
@@ -444,10 +626,22 @@ PROVIDE A COMPREHENSIVE LIST of all items found. NO LIMIT ON ITEMS.`;
                 .st { font-weight: 800; color: #fff; text-align: right; font-size: 1.1rem; }
                 .is-excluded { opacity: 0.3; }
 
-                .audit-footer { display: flex; justify-content: space-between; margin-top: 40px; }
-                .audit-footer button { padding: 15px 40px; border-radius: 16px; font-weight: 800; cursor: pointer; border: none; }
+                .audit-footer { display: flex; justify-content: space-between; margin-top: 40px; gap: 15px; }
+                .audit-footer button { padding: 15px 30px; border-radius: 16px; font-weight: 800; cursor: pointer; border: none; flex: 1; }
                 .audit-footer .primary { background: var(--a); color: #fff; }
-                .audit-footer .secondary { background: none; color: var(--tm); }
+                .audit-footer .secondary { background: #21262d; color: var(--tm); border: 1px solid var(--border); }
+                .audit-footer .market-btn { background: #161b22; color: #10b981; border: 1px solid #10b981; }
+                .audit-footer .market-btn:hover { background: #10b98110; }
+
+                .scale-bar { background: #161b22; border: 1px solid var(--border); border-radius: 24px; padding: 25px 30px; margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between; gap: 30px; }
+                .scale-info strong { display: block; font-size: 1.1rem; color: #fff; margin-bottom: 4px; }
+                .scale-info span { font-size: 0.8rem; color: var(--tm); }
+                .scale-controls { display: flex; align-items: center; gap: 15px; }
+                .scale-field label { display: block; font-size: 0.65rem; color: var(--tm); text-transform: uppercase; font-weight: 800; margin-bottom: 6px; }
+                .scale-field input { background: #0b0e14; border: 1px solid var(--border); color: var(--a); padding: 10px 15px; border-radius: 10px; width: 100px; font-weight: 800; font-size: 1rem; }
+                .apply-scale-btn { background: var(--a); color: #fff; border: none; padding: 12px 20px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+                .apply-scale-btn:hover { filter: brightness(1.2); }
+                .reset-scale-btn { background: #21262d; color: var(--tm); border: 1px solid var(--border); padding: 12px 20px; border-radius: 12px; font-weight: 700; cursor: pointer; }
 
                 .discovery-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px; }
                 .web-helper-card { background: #161b22; border: 1px solid var(--border); padding: 40px; border-radius: 32px; text-align: center; cursor: pointer; transition: 0.3s; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
