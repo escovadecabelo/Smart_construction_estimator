@@ -21,7 +21,7 @@ const COMPANY_INFO = {
     shortName: 'MARDEGAN',
     estimator: 'Eduardo Moulin Mardegan',
     phone: '214-650-4381',
-    address: '904'
+    address: '904 Valleybrook Dr. Lewisville - TX, 75067'
 };
 
 function App() {
