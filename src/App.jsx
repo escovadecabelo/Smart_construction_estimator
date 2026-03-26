@@ -24,6 +24,7 @@ function App() {
     const [scopeDropdownOpen, setScopeDropdownOpen] = useState(false);
     const [engineDropdownOpen, setEngineDropdownOpen] = useState(false);
     const [showWebAIScan, setShowWebAIScan] = useState(false);
+    const [jsonInput, setJsonInput] = useState('');
 
     // Strict Environment Variable Loading
     const [apiKeys] = useState(() => {
@@ -155,6 +156,31 @@ Return ONLY a JSON array with these 4 fields: label, qty, unit, unitCost.
 Limit to top 4 variables. Format example: [{ "id": 1, "label": "Gyp Walls", "qty": 450, "unit": "ft", "unitCost": 12.00 }]`;
     };
 
+    const handleJSONImport = () => {
+        try {
+            const parsed = JSON.parse(jsonInput);
+            if (!Array.isArray(parsed)) throw new Error("Input must be a JSON array");
+
+            // Clean and validate
+            const cleaned = parsed.map((item, idx) => ({
+                id: idx + 1,
+                label: item.label || 'Unknown Variable',
+                qty: parseFloat(item.qty) || 0,
+                unit: item.unit || 'units',
+                unitCost: parseFloat(item.unitCost) || 0
+            }));
+
+            setEditableVars(cleaned);
+            setShowWebAIScan(false);
+            setAnalysisStep(1); // Jump to Inspection Hub
+            setJsonInput('');
+            console.log("[AI Sync] JSON IMPORT SUCCESSFUL");
+        } catch (err) {
+            console.error("[AI Sync] JSON IMPORT ERROR:", err);
+            alert("Invalid JSON format! Please ensure you copied the exact array from the AI response.");
+        }
+    };
+
     return (
         <div className="app-container">
             <nav className="top-nav">
@@ -274,6 +300,20 @@ Limit to top 4 variables. Format example: [{ "id": 1, "label": "Gyp Walls", "qty
                                             <div className="step-content">
                                                 <strong>Upload PDF & Paste</strong>
                                                 <p className="sub-hint">Drop your PDF into their window and paste the prompt!</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="h-step import-step">
+                                            <span className="step-num">4</span>
+                                            <div className="step-content">
+                                                <strong>Paste Results & Import</strong>
+                                                <textarea
+                                                    className="json-textarea"
+                                                    placeholder="Paste the JSON array here... (e.g., [{ 'label': 'walls', ... }])"
+                                                    value={jsonInput}
+                                                    onChange={(e) => setJsonInput(e.target.value)}
+                                                />
+                                                <button className="primary-btn import-btn" onClick={handleJSONImport}>Import & Audit Results</button>
                                             </div>
                                         </div>
                                     </div>
@@ -492,6 +532,11 @@ Limit to top 4 variables. Format example: [{ "id": 1, "label": "Gyp Walls", "qty
         .ai-link.chatgpt { background: #10a37f; color: white; }
         .ai-link:hover { opacity: 0.9; transform: scale(1.02); }
         .sub-hint { font-size: 0.85rem; color: #64748b; font-style: italic; margin-top: 8px; }
+
+        .import-step { background: #f1f5f9; padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0; }
+        .json-textarea { width: 100%; height: 120px; padding: 12px; border-radius: 12px; border: 1px solid #cbd5e1; font-family: monospace; font-size: 0.8rem; margin: 12px 0; resize: none; background: white; }
+        .json-textarea:focus { border-color: var(--accent); outline: none; }
+        .import-btn { width: 100%; }
 
         @media (max-width: 768px) {
             .discovery-grid { grid-template-columns: 1fr; }
