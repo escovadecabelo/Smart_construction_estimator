@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { orcamentoLimpeza } from './limpeza.mjs';
 import { orcamentoDemolicao } from './demolicao.mjs';
 import { orcamentoPintura } from './pintura.mjs';
+import logoImg from './logo.jpg';
 
 const SCOPES = [
     { id: 'cleaning', label: 'Post-Construction Cleaning', icon: '✨', data: orcamentoLimpeza },
@@ -218,7 +219,10 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
     return (
         <div className="app-container">
             <nav className="top-nav">
-                <div className="nav-logo">{COMPANY_INFO.shortName}<span>BID</span> AI</div>
+                <div className="nav-logo">
+                    <img src={logoImg} alt="Mardegan Logo" className="logo-img" />
+                    <span>BID</span> AI
+                </div>
                 <div className="nav-controls">
                     <div className="custom-dropdown" ref={scopeRef}>
                         <label className="dropdown-label">CONSTRUCTION SCOPE</label>
@@ -454,7 +458,7 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
                         <div className="proposal-doc">
                             <header className="doc-header">
                                 <div className="company-branding">
-                                    <div className="c-logo">{COMPANY_INFO.shortName}</div>
+                                    <img src={logoImg} alt="Mardegan Logo" className="doc-logo-img" />
                                     <div className="c-info">
                                         <div className="c-name">{COMPANY_INFO.name}</div>
                                         <div className="c-sub">Advanced Construction Solutions</div>
@@ -518,8 +522,9 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
         :root { --accent: #3b82f6; --primary: #0f172a; --text-muted: #64748b; }
         .app-container { min-height: 100vh; width: 100%; display: flex; flex-direction: column; align-items: center; background: #f8fafc; font-family: 'Inter', sans-serif; color: var(--primary); }
         
-        .top-nav { width: 100%; height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: white; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 1000; }
-        .nav-logo { font-weight: 800; font-size: 1.4rem; color: var(--primary); }
+         .top-nav { width: 100%; height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: white; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 1000; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 1.4rem; color: var(--primary); }
+        .logo-img { height: 40px; width: auto; }
         .nav-logo span { color: var(--accent); }
         .nav-controls { display: flex; align-items: center; gap: 30px; }
         .nav-divider { width: 1px; height: 30px; background: #e2e8f0; }
@@ -574,7 +579,7 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
         .proposal-doc { background: white; border-radius: 32px; padding: 80px; box-shadow: 0 30px 60px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; }
         .doc-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #1e293b; padding-bottom: 40px; margin-bottom: 60px; }
         .company-branding { display: flex; gap: 20px; align-items: center; }
-        .c-logo { background: #1e293b; color: white; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1rem; border-radius: 12px; }
+        .doc-logo-img { width: 80px; height: auto; }
         .c-name { font-weight: 800; font-size: 1.4rem; color: #1e293b; letter-spacing: -0.5px; }
         .c-sub { font-size: 0.8rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
         .c-contact { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; font-weight: 500; }
