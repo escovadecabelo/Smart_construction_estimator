@@ -16,6 +16,14 @@ const AI_ENGINES = [
     { id: 'gpt4', label: 'GPT-4o Premium', icon: '🤖', provider: 'OpenAI', model: 'gpt-4o' },
 ];
 
+const COMPANY_INFO = {
+    name: 'Mardegan Construction',
+    shortName: 'MARDEGAN',
+    estimator: 'Eduardo Moulin Mardegan',
+    phone: '214-650-4381',
+    address: '904'
+};
+
 function App() {
     const [currentScope, setCurrentScope] = useState(SCOPES[0]);
     const [currentEngine, setCurrentEngine] = useState(AI_ENGINES[0]);
@@ -210,7 +218,7 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
     return (
         <div className="app-container">
             <nav className="top-nav">
-                <div className="nav-logo">SMART<span>BID</span> AI</div>
+                <div className="nav-logo">{COMPANY_INFO.shortName}<span>BID</span> AI</div>
                 <div className="nav-controls">
                     <div className="custom-dropdown" ref={scopeRef}>
                         <label className="dropdown-label">CONSTRUCTION SCOPE</label>
@@ -445,8 +453,18 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
 
                         <div className="proposal-doc">
                             <header className="doc-header">
-                                <h1>Specialized Bidding Proposal</h1>
-                                <p className="engine-id">REF: BID-{currentEngine.id.toUpperCase()}-{Math.floor(Math.random() * 10000)}</p>
+                                <div className="company-branding">
+                                    <div className="c-logo">{COMPANY_INFO.shortName}</div>
+                                    <div className="c-info">
+                                        <div className="c-name">{COMPANY_INFO.name}</div>
+                                        <div className="c-sub">Advanced Construction Solutions</div>
+                                        <div className="c-contact">{COMPANY_INFO.phone} | {COMPANY_INFO.address}</div>
+                                    </div>
+                                </div>
+                                <div className="proposal-meta">
+                                    <h1>Specialized Bidding Proposal</h1>
+                                    <p className="engine-id">REF: BID-{currentEngine.id.toUpperCase()}-{Math.floor(Math.random() * 10000)}</p>
+                                </div>
                             </header>
 
                             <section className="doc-page">
@@ -479,8 +497,16 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
 
                             <footer className="proposal-footer">
                                 <div className="sig-area">
-                                    <div className="sig-box"><p>Contract Manager Signature</p></div>
-                                    <div className="sig-box"><p>Project Owner Acceptance</p></div>
+                                    <div className="sig-box">
+                                        <div className="sig-line"></div>
+                                        <p>{COMPANY_INFO.estimator}</p>
+                                        <span>Lead Estimator | {COMPANY_INFO.name}</span>
+                                    </div>
+                                    <div className="sig-box">
+                                        <div className="sig-line"></div>
+                                        <p>Project Owner Acceptance</p>
+                                        <span>Authorized Representative</span>
+                                    </div>
                                 </div>
                             </footer>
                         </div>
@@ -546,7 +572,20 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
         .proposal-view { width: 100%; max-width: 1000px; margin: 0 auto; }
         .proposal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
         .proposal-doc { background: white; border-radius: 32px; padding: 80px; box-shadow: 0 30px 60px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; }
-        .doc-header h1 { font-size: 2.8rem; font-weight: 800; color: var(--primary); margin-bottom: 10px; }
+        .doc-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 4px solid #1e293b; padding-bottom: 40px; margin-bottom: 60px; }
+        .company-branding { display: flex; gap: 20px; align-items: center; }
+        .c-logo { background: #1e293b; color: white; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1rem; border-radius: 12px; }
+        .c-name { font-weight: 800; font-size: 1.4rem; color: #1e293b; letter-spacing: -0.5px; }
+        .c-sub { font-size: 0.8rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .c-contact { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; font-weight: 500; }
+        .proposal-meta { text-align: right; }
+        .doc-header h1 { font-size: 2.2rem; font-weight: 800; color: var(--primary); margin-bottom: 10px; }
+        
+        .sig-area { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 80px; }
+        .sig-box { text-align: left; }
+        .sig-box p { font-weight: 800; font-size: 1.1rem; color: #1e293b; margin-bottom: 4px; }
+        .sig-box span { font-size: 0.85rem; color: #64748b; font-weight: 600; }
+        .sig-line { border-top: 2px solid #e2e8f0; margin-bottom: 15px; padding-top: 5px; }
         
         .item-row { display: flex; justify-content: space-between; padding: 20px 0; border-bottom: 1px solid #f1f5f9; }
         .total-box-v4 { background: var(--primary); padding: 40px; border-radius: 24px; display: flex; justify-content: space-between; align-items: center; color: white; margin-top: 50px; }
