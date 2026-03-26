@@ -45,7 +45,9 @@ function App() {
     const engineRef = useRef(null);
 
     useEffect(() => {
-        const total = editableVars.reduce((acc, curr) => acc + (curr.qty * curr.unitCost), 0);
+        const total = editableVars
+            .filter(v => v.included !== false)
+            .reduce((acc, curr) => acc + (curr.qty * curr.unitCost), 0);
         setProjectedTotal(total);
     }, [editableVars]);
 
@@ -109,7 +111,7 @@ function App() {
                 throw new Error(`${currentEngine.label} requires a backend proxy for browser-based PDF analysis to avoid CORS. Please use Gemini 2.0 Pro for direct local testing.`);
             }
 
-            setEditableVars(resultVars);
+            setEditableVars(resultVars.map(v => ({ ...v, included: true })));
             setAnalysisStep(1);
         } catch (error) {
             console.error("[AI Sync] EXTRACTION ERROR:", error);
@@ -124,22 +126,30 @@ function App() {
     const getDefaultVariables = (scope) => {
         if (scope === 'cleaning') {
             return [
-                { id: 1, label: 'Standard Floor Area', qty: 5000, unit: 'sq.ft', unitCost: 0.15 },
-                { id: 2, label: 'Restroom Deep Scrub', qty: 4, unit: 'units', unitCost: 45.00 },
-                { id: 3, label: 'Window Detailing', qty: 1, unit: 'lot', unitCost: 850.00 },
-                { id: 4, label: 'Project Mobilization', qty: 1, unit: 'fee', unitCost: 350.00 },
+                { id: 1, label: 'Standard Floor Area', qty: 5000, unit: 'sq.ft', unitCost: 0.15, included: true },
+                { id: 2, label: 'Restroom Deep Scrub', qty: 4, unit: 'units', unitCost: 45.00, included: true },
+                { id: 3, label: 'Window Detailing', qty: 1, unit: 'lot', unitCost: 850.00, included: true },
+                { id: 4, label: 'Project Mobilization', qty: 1, unit: 'fee', unitCost: 350.00, included: true },
             ];
         }
         return [
-            { id: 1, label: 'Interior Gyp Walls', qty: 450, unit: 'linear ft', unitCost: 12.00 },
-            { id: 2, label: 'Flooring (Tile/Carpet)', qty: 2200, unit: 'sq.ft', unitCost: 2.50 },
-            { id: 3, label: 'Debris Disposal (Est)', qty: 8.5, unit: 'tons', unitCost: 350.00 },
-            { id: 4, label: 'Heavy Equipment Ops', qty: 2, unit: 'days', unitCost: 1200.00 },
+            { id: 1, label: 'Interior Gyp Walls', qty: 450, unit: 'linear ft', unitCost: 12.00, included: true },
+            { id: 2, label: 'Flooring (Tile/Carpet)', qty: 2200, unit: 'sq.ft', unitCost: 2.50, included: true },
+            { id: 3, label: 'Debris Disposal (Est)', qty: 8.5, unit: 'tons', unitCost: 350.00, included: true },
+            { id: 4, label: 'Heavy Equipment Ops', qty: 2, unit: 'days', unitCost: 1200.00, included: true },
         ];
     };
 
     const handleVarChange = (id, newQty) => {
         setEditableVars(prev => prev.map(v => v.id === id ? { ...v, qty: parseFloat(newQty) || 0 } : v));
+    };
+
+    const handleUnitCostChange = (id, newCost) => {
+        setEditableVars(prev => prev.map(v => v.id === id ? { ...v, unitCost: parseFloat(newCost) || 0 } : v));
+    };
+
+    const handleToggleIncluded = (id) => {
+        setEditableVars(prev => prev.map(v => v.id === id ? { ...v, included: !v.included } : v));
     };
 
     const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
@@ -182,7 +192,8 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
                 label: item.label || 'Unknown Variable',
                 qty: parseFloat(item.qty) || 0,
                 unit: item.unit || 'units',
-                unitCost: parseFloat(item.unitCost) || 0
+                unitCost: parseFloat(item.unitCost) || 0,
+                included: true
             }));
 
             setEditableVars(cleaned);
@@ -356,6 +367,7 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
                             <table className="editable-table">
                                 <thead>
                                     <tr>
+                                        <th>Select</th>
                                         <th>Extracted Variable</th>
                                         <th>Value / Quantity</th>
                                         <th>Unit</th>
@@ -365,7 +377,15 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
                                 </thead>
                                 <tbody>
                                     {editableVars.map((v) => (
-                                        <tr key={v.id}>
+                                        <tr key={v.id} className={v.included ? '' : 'excluded-row'}>
+                                            <td className="v-check-cell">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={v.included}
+                                                    onChange={() => handleToggleIncluded(v.id)}
+                                                    className="row-checkbox"
+                                                />
+                                            </td>
                                             <td className="v-label-cell">{v.label}</td>
                                             <td className="v-input-cell">
                                                 <input
@@ -373,10 +393,22 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
                                                     value={v.qty}
                                                     onChange={(e) => handleVarChange(v.id, e.target.value)}
                                                     className="qty-input"
+                                                    disabled={!v.included}
                                                 />
                                             </td>
                                             <td className="v-unit">{v.unit}</td>
-                                            <td className="v-cost">{formatCurrency(v.unitCost)}</td>
+                                            <td className="v-input-cell">
+                                                <div className="cost-wrapper">
+                                                    <span>$</span>
+                                                    <input
+                                                        type="number"
+                                                        value={v.unitCost}
+                                                        onChange={(e) => handleUnitCostChange(v.id, e.target.value)}
+                                                        className="cost-input"
+                                                        disabled={!v.included}
+                                                    />
+                                                </div>
+                                            </td>
                                             <td className="v-subtotal">{formatCurrency(v.qty * v.unitCost)}</td>
                                         </tr>
                                     ))}
@@ -425,7 +457,7 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
                                 </div>
 
                                 <div className="final-ledger">
-                                    {editableVars.map((v, i) => (
+                                    {editableVars.filter(v => v.included).map((v, i) => (
                                         <div key={i} className="item-row">
                                             <div className="item-info">
                                                 <span className="item-nm">{v.label}</span>
@@ -552,6 +584,14 @@ Example JSON Structure: [{"label": "Variable 1", "qty": 100, "unit": "sq.ft", "u
         .json-textarea { width: 100%; height: 120px; padding: 12px; border-radius: 12px; border: 1px solid #cbd5e1; font-family: monospace; font-size: 0.8rem; margin: 12px 0; resize: none; background: white; }
         .json-textarea:focus { border-color: var(--accent); outline: none; }
         .import-btn { width: 100%; }
+
+        .excluded-row { opacity: 0.5; background: #f8fafc; }
+        .excluded-row .v-label-cell { text-decoration: line-through; }
+        .v-check-cell { text-align: center; width: 60px; }
+        .row-checkbox { width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent); }
+        .cost-wrapper { display: flex; align-items: center; gap: 4px; background: #f1f5f9; padding: 0 10px; border-radius: 8px; }
+        .cost-input { background: none; border: none; width: 80px; padding: 8px 0; font-weight: 700; font-family: inherit; }
+        .cost-input:focus { outline: none; }
 
         @media (max-width: 768px) {
             .discovery-grid { grid-template-columns: 1fr; }
