@@ -1,6 +1,6 @@
 /**
  * DATA MODULE: orcamentoPintura (PAINTING AND DRYWALL FINISHING)
- * Specialized high-fidelity painting variables.
+ * Realistic sample data for specialized painting bids.
  */
 
 export const orcamentoPintura = {

@@ -1,37 +1,18 @@
-// MÓDULO 1: orcamentoLimpeza (POST-CONSTRUCTION CLEANING)
-// Este módulo contém os dados estruturados para a estimativa de limpeza pós-obra.
+/**
+ * DATA MODULE: orcamentoLimpeza (POST-CONSTRUCTION CLEANING)
+ * Specialized high-fidelity cleaning variables.
+ */
 
 export const orcamentoLimpeza = {
-    totalSqFt: 5000,
-    restrooms: 4,
-    flooringTypes: ['Polished Concrete', 'LVT', 'Ceramic Tile'],
-    phases: {
-        phase1_RoughClean: {
-            description: 'Rough Clean (Debris removal, initial sweep)',
-            cost: 1500,
-            margin: 0.30
-        },
-        phase2_ProgressClean: {
-            description: 'Progress Clean (Detailed cleaning during construction)',
-            cost: 2000,
-            margin: 0.30
-        },
-        phase3_FinalClean: {
-            description: 'Final Clean (Turnover Ready - Detailed sanitization)',
-            cost: 3500,
-            margin: 0.30
-        },
-        phase4_PuffClean: {
-            description: 'Puff Clean (Final touch-up before move-in)',
-            cost: 800,
-            margin: 0.30
-        }
-    },
-    bundleOption: {
-        description: 'Complete Cleaning Package (Phase 1-4)',
-        discountedPrice: 7000 // Valor com desconto aplicado
-    },
-    alternates: [
-        { name: 'Power Washing (Exterior)', price: 1200 }
-    ]
+    totalSqFt: 15400,
+    restrooms: 6,
+    items: [
+        { id: 1, label: 'Phase 1: Rough Clean (Debris & Sweep)', qty: 15400, unit: 'sq.ft', unitCost: 0.12 },
+        { id: 2, label: 'Phase 2: Progress Clean (Detail Dusting)', qty: 15400, unit: 'sq.ft', unitCost: 0.15 },
+        { id: 3, label: 'Phase 3: Final Clean (Turnover Ready)', qty: 15400, unit: 'sq.ft', unitCost: 0.22 },
+        { id: 4, label: 'Phase 4: Puff Clean (Touch-up)', qty: 1, unit: 'lot', unitCost: 850.00 },
+        { id: 5, label: 'Restroom Deep Scrub & Sanitization', qty: 6, unit: 'units', unitCost: 65.00 }
+    ],
+    totalBaseBid: 8500.00,
+    markup: 0.30
 };

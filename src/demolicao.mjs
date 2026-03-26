@@ -1,20 +1,16 @@
-// MÓDULO 2: orcamentoDemolicao (SELECTIVE INTERIOR DEMOLITION)
-// Este módulo contém os dados estruturados para a estimativa de demolição seletiva interna.
+/**
+ * DATA MODULE: orcamentoDemolicao (SELECTIVE INTERIOR DEMOLITION)
+ * Specialized high-fidelity demolition variables.
+ */
 
 export const orcamentoDemolicao = {
-    scope: [
-        'Removal of existing non-load bearing partitions',
-        'Demolition of acoustic ceiling tiles and grid',
-        'Removal of existing floor finishes (Carpet, VCT)',
-        'Disposal of all construction debris'
+    items: [
+        { id: 1, label: 'Non-Load Bearing Partition Removal', qty: 2500, unit: 'sq.ft', unitCost: 3.50 },
+        { id: 2, label: 'Acoustic Ceiling Tile & Grid Demo', qty: 5200, unit: 'sq.ft', unitCost: 0.85 },
+        { id: 3, label: 'Carpet & VCT Flooring Removal', qty: 4800, unit: 'sq.ft', unitCost: 1.25 },
+        { id: 4, label: 'Construction Debris Disposal (Roll-off)', qty: 6, unit: 'hauls', unitCost: 650.00 },
+        { id: 5, label: 'Heavy Equipment & Scaffolding Rental', qty: 1, unit: 'lot', unitCost: 1800.00 }
     ],
-    paymentTerms: {
-        mobilization: '30%',
-        progress: '30%',
-        final: '40%'
-    },
-    totalBid: 12500, // Total considerando lucro
-    alternates: [
-        { name: 'Concrete Slab Cutting', unit: 'Linear Foot', pricePerUnit: 45 }
-    ]
+    totalBaseBid: 22420.00,
+    markup: 0.30
 };

@@ -1,305 +1,190 @@
 /**
- * MÓDULO 4: GERADOR DE LAYOUT PREMIUM (HTML/CSS)
- * Este módulo gera uma proposta comercial ultra-moderna e elegante.
+ * MASTER GENERATOR: UNIFIED PREMIUM PROPOSAL
+ * Produces stunning, trade-specific proposals for Painting, Demolition, and Cleaning.
+ * Designed for Mardegan Construction.
  */
 
-export function gerarPropostaHTML(dados) {
-    const { limpeza, demolicao, pintura } = dados;
-
+export function gerarPropostaHTML(dados, currentScope = 'all') {
     const formatCurrency = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+    const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const styles = `
+        <style>
+            :root {
+                --primary: #0f172a;
+                --accent: #3b82f6;
+                --accent-soft: #eff6ff;
+                --text-main: #1e293b;
+                --text-muted: #64748b;
+                --border: #e2e8f0;
+                --white: #ffffff;
+                --bg-page: #f1f5f9;
+            }
+
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: 'Outfit', sans-serif; background: var(--bg-page); color: var(--text-main); line-height: 1.6; padding: 60px 20px; }
+            
+            .proposal-container { max-width: 850px; margin: 0 auto; background: var(--white); border-radius: 32px; padding: 70px; box-shadow: 0 40px 100px -20px rgba(0,0,0,0.1); border: 1px solid var(--border); overflow: hidden; position: relative; }
+            .proposal-container::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 10px; background: linear-gradient(90deg, var(--accent), #60a5fa); }
+
+            header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--primary); padding-bottom: 40px; margin-bottom: 50px; }
+            .company-meta { display: flex; flex-direction: column; gap: 4px; }
+            .company-meta .name { font-weight: 900; font-size: 1.6rem; color: var(--primary); letter-spacing: -0.5px; }
+            .company-meta .sub { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+            .company-meta .address { font-size: 0.75rem; color: #94a3b8; margin-top: 10px; font-weight: 600; }
+
+            .proposal-meta { text-align: right; }
+            .proposal-meta h1 { font-family: 'Inter', sans-serif; font-size: 2.4rem; font-weight: 800; color: var(--primary); margin-bottom: 8px; line-height: 1; }
+            .proposal-meta .ref { font-size: 0.85rem; font-weight: 800; color: var(--accent); text-transform: uppercase; }
+
+            .intro-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-bottom: 50px; background: var(--bg-page); padding: 25px; border-radius: 20px; border: 1px solid var(--border); }
+            .info-group label { display: block; font-size: 0.6rem; font-weight: 900; text-transform: uppercase; color: #94a3b8; letter-spacing: 1.5px; margin-bottom: 4px; }
+            .info-group p { font-weight: 700; font-size: 0.95rem; color: var(--primary); }
+
+            h2 { font-size: 1.6rem; color: var(--primary); margin: 40px 0 25px; display: flex; align-items: center; gap: 12px; font-weight: 800; border-left: 5px solid var(--accent); padding-left: 15px; }
+            
+            .ledger-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            .ledger-table th { text-align: left; padding: 15px 10px; border-bottom: 2px solid var(--border); font-size: 0.7rem; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px; }
+            .ledger-table td { padding: 25px 10px; border-bottom: 1px solid #f1f5f9; }
+            .item-label { font-weight: 700; color: var(--primary); font-size: 1.05rem; margin-bottom: 4px; }
+            .item-details { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+            .item-price { font-weight: 800; text-align: right; font-size: 1.2rem; color: var(--primary); }
+
+            .total-section { background: var(--primary); padding: 50px; border-radius: 30px; color: var(--white); display: flex; justify-content: space-between; align-items: center; margin: 50px 0; box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.4); }
+            .total-label h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 6px; }
+            .total-label p { font-size: 0.8rem; opacity: 0.6; }
+            .total-section .value { font-size: 3.2rem; font-weight: 900; color: #60a5fa; letter-spacing: -2px; }
+
+            .terms-box { background: #fafafa; border: 1px dashed var(--border); padding: 30px; border-radius: 20px; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 50px; }
+            .terms-box h4 { color: var(--primary); margin-bottom: 10px; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; }
+            .terms-list { padding-left: 20px; }
+            .terms-list li { margin-bottom: 8px; }
+
+            .signature-area { margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; }
+            .sig-line { border-top: 2px solid var(--primary); padding-top: 15px; margin-bottom: 6px; position: relative; }
+            .sig-line::after { content: 'X'; position: absolute; left: 0; top: -25px; color: var(--accent); font-weight: 900; opacity: 0.3; }
+            .sig-box strong { display: block; font-size: 1rem; color: var(--primary); }
+            .sig-box span { font-size: 0.8rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
+
+            .page-break { page-break-after: always; }
+            
+            @media print {
+                body { padding: 0; background: white; }
+                .proposal-container { border: none; box-shadow: none; padding: 0; width: 100%; border-radius: 0; }
+                .total-section { background: #f8fafc !important; color: var(--primary) !important; border: 2px solid var(--primary); box-shadow: none; }
+                .total-section .value { color: var(--accent) !important; }
+            }
+        </style>
+    `;
+
+    const commonHeader = (title, refPrefix) => `
+        <header>
+            <div class="company-meta">
+                <p class="name">MARDEGAN CONSTRUCTION</p>
+                <p class="sub">Advanced Construction Solutions</p>
+                <p class="address">904 Valleybrook Dr. Lewisville - TX, 75067</p>
+            </div>
+            <div class="proposal-meta">
+                <h1>${title}</h1>
+                <p class="ref">REF: ${refPrefix}-${Math.floor(Math.random() * 89999) + 10000}</p>
+            </div>
+        </header>
+
+        <div class="intro-grid">
+            <div class="info-group"><label>Issue Date</label><p>${date}</p></div>
+            <div class="info-group"><label>Valid Until</label><p>30 Days from Issue</p></div>
+            <div class="info-group"><label>Lead Estimator</label><p>Eduardo Moulin Mardegan</p></div>
+        </div>
+    `;
+
+    const termsSection = `
+        <div class="terms-box">
+            <h4>Standard Terms & Execution Protocol</h4>
+            <ul class="terms-list">
+                <li>Materials: Mardegan Construction will provide premium-grade materials as per blueprint specs.</li>
+                <li>Timeline: Work completion dates are subject to project site readiness and clear access.</li>
+                <li>Standards: All execution follows high-end architectural standards for elite results.</li>
+                <li>Safety: Project will strictly adhere to OSHA guidelines and Mardegan's internal safety protocols.</li>
+            </ul>
+        </div>
+    `;
+
+    const renderTradeContent = (scopeId, data) => {
+        const titleMap = {
+            painting: 'Painting & Finishing',
+            demolition: 'Selective Demolition',
+            cleaning: 'Post-Construction cleaning'
+        };
+        const refMap = { painting: 'PNT', demolition: 'DMO', cleaning: 'CLN' };
+
+        return `
+            <div class="proposal-page">
+                ${commonHeader(titleMap[scopeId], refMap[scopeId])}
+                
+                <h2>Project Takeoff Ledger</h2>
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>Description of Scope</th>
+                            <th style="text-align: right;">Line Item Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.items ? data.items.map(item => `
+                            <tr>
+                                <td>
+                                    <p class="item-label">${item.label}</p>
+                                    <span class="item-details">${item.qty.toLocaleString()} ${item.unit} @ ${formatCurrency(item.unitCost)} / unit</span>
+                                </td>
+                                <td class="item-price">${formatCurrency(item.qty * item.unitCost)}</td>
+                            </tr>
+                        `).join('') : '<tr><td colspan="2">No items extracted.</td></tr>'}
+                    </tbody>
+                </table>
+
+                <div class="total-section">
+                    <div class="total-label">
+                        <h3>Total Proposed Investment</h3>
+                        <p>Fully inclusive of Mobilization, Labor, and Materials.</p>
+                    </div>
+                    <div class="value">${formatCurrency(data.totalBaseBid || 0)}</div>
+                </div>
+
+                ${termsSection}
+
+                <div class="signature-area">
+                    <div class="sig-box"><div class="sig-line"></div><strong>Eduardo Moulin Mardegan</strong><span>Chief Estimator</span></div>
+                    <div class="sig-box"><div class="sig-line"></div><strong>Client Authorization</strong><span>Approved Signatory</span></div>
+                </div>
+            </div>
+        `;
+    };
+
+    let content = '';
+    if (currentScope === 'painting' || currentScope === 'all') {
+        content += renderTradeContent('painting', dados.painting || {});
+    }
+    if (currentScope === 'demolition' || currentScope === 'all') {
+        if (content) content += '<div class="page-break"></div>';
+        content += renderTradeContent('demolition', dados.demolition || {});
+    }
+    if (currentScope === 'cleaning' || currentScope === 'all') {
+        if (content) content += '<div class="page-break"></div>';
+        content += renderTradeContent('cleaning', dados.cleaning || {});
+    }
 
     return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium Construction Proposal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #0f172a;
-            --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.5);
-            --bg: #f8fafc;
-            --glass: rgba(255, 255, 255, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.4);
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background: var(--bg);
-            color: var(--text-main);
-            line-height: 1.6;
-            padding: 40px 20px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 60px;
-            animation: fadeInDown 0.8s ease-out;
-        }
-
-        .header h1 {
-            font-family: 'Inter', sans-serif;
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--primary);
-            letter-spacing: -1px;
-            margin-bottom: 10px;
-        }
-
-        .header p { color: var(--text-muted); font-size: 1.1rem; }
-
-        .page {
-            background: var(--glass);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 50px;
-            margin-bottom: 40px;
-            box-shadow: var(--shadow);
-            page-break-after: always;
-            position: relative;
-            overflow: hidden;
-            animation: fadeInUp 0.8s ease-out both;
-        }
-
-        .page::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 6px;
-            background: linear-gradient(90deg, var(--accent), #60a5fa);
-        }
-
-        h2 {
-            font-family: 'Inter', sans-serif;
-            font-size: 1.8rem;
-            color: var(--primary);
-            margin-bottom: 30px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        h2 span {
-            background: var(--accent);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-
-        .section-title {
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 0.85rem;
-            color: var(--accent);
-            margin-bottom: 15px;
-            display: block;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 30px;
-        }
-
-        .card {
-            background: white;
-            padding: 24px;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 20px -10px rgba(0, 0, 0, 0.1);
-            border-color: var(--accent);
-        }
-
-        .label { font-size: 0.9rem; color: var(--text-muted); }
-        .value { font-size: 1.1rem; font-weight: 600; color: var(--primary); }
-
-        .item-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .item-row:last-child { border-bottom: none; }
-
-        .total-box {
-            background: var(--primary);
-            color: white;
-            padding: 30px;
-            border-radius: 16px;
-            margin-top: 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 10px 15px -3px var(--accent-glow);
-        }
-
-        .total-box .price { font-size: 2rem; font-weight: 700; color: #60a5fa; }
-
-        .footer-sig {
-            margin-top: 60px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-        }
-
-        .sig-line {
-            border-top: 1px solid #cbd5e1;
-            padding-top: 10px;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @media print {
-            body { background: white; padding: 0; }
-            .page { border: none; box-shadow: none; background: white; margin: 0; padding: 20px; }
-            .total-box { background: #f1f5f9; color: black; border: 1px solid #ccc; }
-            .total-box .price { color: #1e293b; }
-        }
-    </style>
+    <title>Master Bid Proposal | Mardegan Construction</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    ${styles}
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Commercial Bidding Proposal</h1>
-            <p>Smart Construction Estimator | Industrial & Office Solutions</p>
-        </div>
-
-        <!-- PAGE 1: CLEANING -->
-        <div class="page">
-            <h2><span>01</span> Post-Construction Cleaning</h2>
-            <div class="grid">
-                <div class="card">
-                    <span class="label">Project Area</span>
-                    <p class="value">${limpeza.totalSqFt.toLocaleString()} sq.ft</p>
-                </div>
-                <div class="card">
-                    <span class="label">Facilities</span>
-                    <p class="value">${limpeza.restrooms} Restrooms</p>
-                </div>
-            </div>
-
-            <span class="section-title">Phased Scope</span>
-            ${Object.values(limpeza.phases).map(p => `
-                <div class="item-row">
-                    <span>${p.description}</span>
-                    <span style="font-weight: 600;">Included</span>
-                </div>
-            `).join('')}
-
-            <div class="total-box">
-                <div>
-                    <p style="font-size: 0.9rem; opacity: 0.8;">Full Bundle Investment</p>
-                    <p style="font-size: 1.1rem; font-weight: 600;">Turnover Ready Guaranteed</p>
-                </div>
-                <p class="price">${formatCurrency(limpeza.bundleOption.discountedPrice)}</p>
-            </div>
-
-            <div class="footer-sig">
-                <div class="sig-line">Client Signature</div>
-                <div class="sig-line">Date</div>
-            </div>
-        </div>
-
-        <!-- PAGE 2: DEMOLITION -->
-        <div class="page">
-            <h2><span>02</span> Selective Interior Demolition</h2>
-            <span class="section-title">Detailed Scope of Work</span>
-            <div style="margin-bottom: 30px;">
-                ${demolicao.scope.map(s => `
-                    <div class="item-row">
-                        <span>${s}</span>
-                        <span style="color: var(--accent); font-weight: 600;">&#10003;</span>
-                    </div>
-                `).join('')}
-            </div>
-
-            <div class="grid">
-                <div class="card">
-                    <span class="label">Mobilization (30%)</span>
-                    <p class="value">${formatCurrency(demolicao.totalBid * 0.3)}</p>
-                </div>
-                <div class="card">
-                    <span class="label">Final Progress (70%)</span>
-                    <p class="value">${formatCurrency(demolicao.totalBid * 0.7)}</p>
-                </div>
-            </div>
-
-            <div class="total-box">
-                <div>
-                    <p style="font-size: 0.9rem; opacity: 0.8;">Selective Demolition Total Bid</p>
-                    <p style="font-size: 1.1rem; font-weight: 600;">Disposal Included</p>
-                </div>
-                <p class="price">${formatCurrency(demolicao.totalBid)}</p>
-            </div>
-
-            <div class="footer-sig">
-                <div class="sig-line">Client Signature</div>
-                <div class="sig-line">Date</div>
-            </div>
-        </div>
-
-        <!-- PAGE 3: PAINTING -->
-        <div class="page">
-            <h2><span>03</span> Painting & Drywall Finishing</h2>
-            <span class="section-title">Material Palette</span>
-            <div style="margin-bottom: 20px; font-weight: 600; color: var(--primary);">
-                ${pintura.paintCodes.join(' &bull; ')}
-            </div>
-
-            <span class="section-title">Investment Breakdown</span>
-            ${Object.values(pintura.breakdown).map(b => `
-                <div class="item-row">
-                    <span>${b.description}</span>
-                    <span style="font-weight: 600;">${formatCurrency(b.total)}</span>
-                </div>
-            `).join('')}
-
-            <div class="total-box">
-                <div>
-                    <p style="font-size: 0.9rem; opacity: 0.8;">Total Painting Investment</p>
-                    <p style="font-size: 1.1rem; font-weight: 600;">Premium Materials Included</p>
-                </div>
-                <p class="price">${formatCurrency(pintura.totalBaseBid)}</p>
-            </div>
-
-            <div class="footer-sig">
-                <div class="sig-line">Client Signature</div>
-                <div class="sig-line">Date</div>
-            </div>
-        </div>
+    <div class="proposal-container">
+        ${content}
     </div>
 </body>
 </html>
