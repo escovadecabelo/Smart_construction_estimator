@@ -50,6 +50,21 @@ const MARKET_COSTS = {
     }
 };
 
+const COMMON_SCALES = [
+    '1/4" = 1\'-0"',
+    '1/8" = 1\'-0"',
+    '3/16" = 1\'-0"',
+    '3/32" = 1\'-0"',
+    '1/2" = 1\'-0"',
+    '3/4" = 1\'-0"',
+    '1" = 1\'-0"',
+    '1 1/2" = 1\'-0"',
+    '3" = 1\'-0"',
+    '1" = 10\'-0" (Eng)',
+    '1" = 20\'-0" (Eng)',
+    'Other (Custom)...'
+];
+
 function App() {
     const [view, setView] = useState('launcher'); // 'launcher', 'dashboard'
     const [currentScope, setCurrentScope] = useState(null);
@@ -57,6 +72,9 @@ function App() {
     const [analyzing, setAnalyzing] = useState(false);
     const [analysisStep, setAnalysisStep] = useState(0); // 0: Upload, 1: Audit, 2: Preview
     const [showFacilitator, setShowFacilitator] = useState(false);
+    const [includeScaleInPrompt, setIncludeScaleInPrompt] = useState(false);
+    const [scaleValue, setScaleValue] = useState(COMMON_SCALES[0]);
+    const [showCustomScale, setShowCustomScale] = useState(false);
     const [jsonInput, setJsonInput] = useState('');
     const [editableVars, setEditableVars] = useState([]);
     const [projectedTotal, setProjectedTotal] = useState(0);
@@ -115,7 +133,9 @@ function App() {
             });
 
             const prompt = `Act as a Senior Construction Estimator specializing in ${currentScope.label}. 
+            ${includeScaleInPrompt && scaleValue ? `IMPORTANT: The blueprint scale is ${scaleValue}. Please use this for all spatial calculations.` : ''}
             Analyze this blueprint for ${currentScope.label} specific quantities and materials.
+            IMPORTANT: Ensure all pricing is HIGHLY COMPETITIVE and reflects the CHEAPEST viable market rates.
             Return ONLY a JSON array: [{"id": 1, "label": "Item Description", "qty": 100, "unit": "sq.ft", "unitCost": 12.50}].
             Provide a COMPREHENSIVE list of all high-value variables found.`;
 
@@ -178,12 +198,13 @@ function App() {
     const getExternalPrompt = () => {
         return `Act as a Senior Construction Project Manager and Lead Estimator for Mardegan Construction. 
 Your objective is to conduct an exhaustive Deep Spatial Analysis and Material Takeoff of the attached blueprint for ${currentScope.label}.
-
+${includeScaleInPrompt && scaleValue ? `\nCRITICAL CONTEXT: The blueprint scale is ${scaleValue}. All measurements should be derived using this scale factor.\n` : ''}
 MASTER ESTIMATOR PROTOCOL:
 1. QUANTITATIVE ANALYSIS: Extract every measurable quantity with high precision (Sq.ft, Linear Ft, Counts).
 2. MATERIAL SCHEDULE: Identify all specific material types, grades, and finishes mentioned.
-3. LABOR ESTIMATION: Apply current industrial market rates for professional labor in this scope.
-4. LOGISTICAL AUDIT: Account for mobilization, debris removal, and overhead costs.
+3. LABOR ESTIMATION: Apply the MOST COMPETITIVE industrial market rates for professional labor in this scope.
+4. COST OPTIMIZATION: Target the CHEAPEST viable prices for all materials and labor to ensure a winning bid.
+5. LOGISTICAL AUDIT: Account for mobilization, debris removal, and overhead costs.
 
 OUTPUT:
 Return ONLY a valid JSON array of objects. EVERY row MUST be a critical project variable.
@@ -197,18 +218,20 @@ PROVIDE A COMPREHENSIVE LIST of all items found. NO LIMIT ON ITEMS.`;
         try {
             const genAI = new GoogleGenerativeAI(apiKeys.google);
             const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-            const prompt = `Act as an Elite Prompt Engineer & Senior Construction Estimator. 
+            const masterPromptPrompt = `Act as an Elite Prompt Engineer & Senior Construction Estimator. 
             Write the ULTIMATE MASTER PROMPT for ${currentScope.label}. 
+            ${includeScaleInPrompt && scaleValue ? `The blueprint being analyzed has a scale of ${scaleValue}. Make sure the generated prompt explicitly instructs the AI to use this scale for all calculations.` : ''}
             This prompt will be used by a contractor to analyze multi-page blueprints in Gemini/ChatGPT.
             The master prompt you write must:
             1. Use professional architectural and trade-specific terminology.
             2. Instruct the AI to perform a 'Zero-Error Takeoff' of all materials for ${currentScope.label}.
-            3. Demand a breakdown of labor, materials, and logistical fees.
-            4. Force the output into a STRICT JSON ARRAY with fields: id, label, qty, unit, unitCost.
-            5. Ensure the AI does not truncate results and looks at EVERY detail.
+            3. MANDATORY: Explicitly instruct the AI to provide the MOST COMPETITIVE pricing and seek the CHEAPEST viable prices for all line items to ensure a successful bid.
+            4. Demand a breakdown of labor, materials, and logistical fees.
+            5. Force the output into a STRICT JSON ARRAY with fields: id, label, qty, unit, unitCost.
+            6. Ensure the AI does not truncate results and looks at EVERY detail.
             Write the prompt in a way that makes the AI feel like it's a $200k/year Lead Estimator.`;
 
-            const result = await model.generateContent(prompt);
+            const result = await model.generateContent(masterPromptPrompt);
             setSmartPrompt(await result.response.text());
         } catch (err) {
             console.error(err);
@@ -527,6 +550,54 @@ PROVIDE A COMPREHENSIVE LIST of all items found. NO LIMIT ON ITEMS.`;
                                             <span className="num">1</span>
                                             <div className="s-body">
                                                 <strong>Develop Expert Prompt</strong>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '15px', padding: '15px', background: '#0b0e14', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            id="includeScale"
+                                                            checked={includeScaleInPrompt}
+                                                            onChange={e => setIncludeScaleInPrompt(e.target.checked)}
+                                                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                                        />
+                                                        <label htmlFor="includeScale" style={{ fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem' }}>Include Blueprint Scale</label>
+                                                    </div>
+                                                    {includeScaleInPrompt && (
+                                                        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.65rem', color: 'var(--tm)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>Select Standard Scale</label>
+                                                                <select
+                                                                    value={showCustomScale ? 'Other (Custom)...' : scaleValue}
+                                                                    onChange={e => {
+                                                                        const val = e.target.value;
+                                                                        if (val === 'Other (Custom)...') {
+                                                                            setShowCustomScale(true);
+                                                                            if (scaleValue === val || COMMON_SCALES.includes(scaleValue)) setScaleValue('');
+                                                                        } else {
+                                                                            setShowCustomScale(false);
+                                                                            setScaleValue(val);
+                                                                        }
+                                                                    }}
+                                                                    style={{ width: '100%', padding: '12px 15px', borderRadius: '10px', background: '#161b22', border: '1px solid var(--border)', color: '#fff', fontSize: '0.9rem', cursor: 'pointer' }}
+                                                                >
+                                                                    {COMMON_SCALES.map(s => <option key={s} value={s}>{s}</option>)}
+                                                                </select>
+                                                            </div>
+
+                                                            {showCustomScale && (
+                                                                <div className="fade-in">
+                                                                    <label style={{ display: 'block', fontSize: '0.65rem', color: 'var(--tm)', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>Custom Scale Value</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={scaleValue}
+                                                                        onChange={e => setScaleValue(e.target.value)}
+                                                                        placeholder='Enter custom scale (e.g. 1:50)...'
+                                                                        style={{ width: '100%', padding: '12px 15px', borderRadius: '10px', background: '#161b22', border: '1px solid var(--border)', color: '#fff', fontSize: '0.9rem' }}
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
                                                     <button className="prompt-btn" onClick={handleGenerateSmartPrompt} disabled={generatingSmart}>
                                                         {generatingSmart ? '🤖 Crafting...' : '✨ Generate Smart Deep Prompt'}
