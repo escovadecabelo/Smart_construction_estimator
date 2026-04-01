@@ -1,6 +1,18 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+ 
+## [1.0.2] - 2026-03-31
+ 
+### Added
+- **AI Prompt Optimization**: Instructed AI engines to prioritize "extremely competitive pricing" and "cheapest viable market rates" for winning bid proposals.
+- **DFW Market Rates Modal**: Integrated a real-time reference guide for standard trade costs in the Dallas-Fort Worth area.
+- **Scale & Dimension Converter**: Added an interactive tool to adjust blueprint quantities based on custom or standard architectural scales.
+- **Project Narrative Logic**: Automated the generation of professional project descriptions based on extracted variables.
+
+### Fixed
+- **Logo Branding Persistence**: Fixed issues with corporate logo rendering across all trade-specific proposal generators.
+- **State Management**: Optimized JSON importing to clear legacy cache between blueprint scans.
 
 ## [1.0.1] - 2026-03-25
 
